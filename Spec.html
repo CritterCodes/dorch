@@ -1,0 +1,1624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dorch — Spec</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #0d0f0e;
+    --bg2:       #111513;
+    --bg3:       #181c1a;
+    --border:    #242825;
+    --border2:   #2e3430;
+    --fg:        #d6d4ce;
+    --fg2:       #8a8d88;
+    --fg3:       #555957;
+    --green:     oklch(0.72 0.18 145);
+    --green-dim: oklch(0.72 0.18 145 / 0.12);
+    --amber:     oklch(0.74 0.16 68);
+    --amber-dim: oklch(0.74 0.16 68 / 0.12);
+    --red:       oklch(0.66 0.18 22);
+    --red-dim:   oklch(0.66 0.18 22 / 0.12);
+    --blue:      oklch(0.72 0.14 240);
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--fg);
+    display: flex;
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* SIDEBAR */
+  .sidebar {
+    width: 220px;
+    min-width: 220px;
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .sidebar-logo {
+    padding: 20px 18px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .sidebar-logo .wordmark {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--green);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .sidebar-logo .sub {
+    font-size: 10px;
+    color: var(--fg3);
+    margin-top: 2px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .sidebar-section {
+    padding: 14px 10px 4px;
+  }
+
+  .sidebar-section-label {
+    font-size: 9px;
+    font-family: 'JetBrains Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--fg3);
+    padding: 0 8px;
+    margin-bottom: 4px;
+  }
+
+  .sidebar-link {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: 5px;
+    font-size: 12px;
+    color: var(--fg2);
+    text-decoration: none;
+    transition: background 0.1s, color 0.1s;
+    cursor: pointer;
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+  }
+
+  .sidebar-link:hover { background: var(--bg3); color: var(--fg); }
+  .sidebar-link.active { background: var(--green-dim); color: var(--green); }
+
+  .sidebar-link .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--border2);
+    flex-shrink: 0;
+  }
+
+  .sidebar-link.active .dot { background: var(--green); }
+
+  .sidebar-footer {
+    margin-top: auto;
+    padding: 12px 18px;
+    border-top: 1px solid var(--border);
+    font-size: 10px;
+    color: var(--fg3);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* MAIN */
+  .main {
+    flex: 1;
+    overflow-y: auto;
+    padding: 48px 56px 80px;
+    max-width: 900px;
+  }
+
+  /* SECTION */
+  .section {
+    margin-bottom: 72px;
+    scroll-margin-top: 32px;
+  }
+
+  .section-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--fg3);
+    margin-bottom: 8px;
+  }
+
+  .section-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 22px;
+    font-weight: 500;
+    color: var(--fg);
+    margin-bottom: 6px;
+    line-height: 1.3;
+  }
+
+  .section-title span { color: var(--green); }
+
+  .section-lead {
+    font-size: 13px;
+    color: var(--fg2);
+    max-width: 620px;
+    margin-bottom: 28px;
+    line-height: 1.7;
+  }
+
+  hr.divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 32px 0;
+  }
+
+  /* HERO */
+  .hero {
+    padding: 0 0 16px;
+    margin-bottom: 16px;
+  }
+
+  .hero-eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--green);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  .hero-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 32px;
+    font-weight: 600;
+    color: var(--fg);
+    line-height: 1.2;
+    margin-bottom: 16px;
+  }
+
+  .hero-title em { color: var(--green); font-style: normal; }
+
+  .hero-desc {
+    font-size: 14px;
+    color: var(--fg2);
+    max-width: 560px;
+    line-height: 1.75;
+    margin-bottom: 28px;
+  }
+
+  .tag-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    padding: 3px 9px;
+    border-radius: 3px;
+    border: 1px solid var(--border2);
+    color: var(--fg3);
+  }
+
+  .tag.green { border-color: var(--green); color: var(--green); background: var(--green-dim); }
+  .tag.amber { border-color: var(--amber); color: var(--amber); background: var(--amber-dim); }
+
+  /* FLOW DIAGRAM */
+  .flow {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin: 24px 0;
+  }
+
+  .flow-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 0;
+  }
+
+  .flow-left {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 32px;
+    flex-shrink: 0;
+  }
+
+  .flow-num {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 1px solid var(--border2);
+    background: var(--bg3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--fg3);
+    flex-shrink: 0;
+  }
+
+  .flow-step.active .flow-num {
+    border-color: var(--green);
+    color: var(--green);
+    background: var(--green-dim);
+  }
+
+  .flow-line {
+    width: 1px;
+    flex: 1;
+    min-height: 20px;
+    background: var(--border);
+    margin: 2px 0;
+  }
+
+  .flow-body {
+    padding: 0 0 20px 16px;
+    flex: 1;
+  }
+
+  .flow-label {
+    font-size: 13px;
+    color: var(--fg);
+    font-weight: 500;
+    margin-bottom: 2px;
+  }
+
+  .flow-sub {
+    font-size: 11px;
+    color: var(--fg3);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* COMPONENT CARDS */
+  .component-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin: 24px 0;
+  }
+
+  .component-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px 20px;
+  }
+
+  .component-card:hover { border-color: var(--border2); }
+
+  .component-card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .component-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--green);
+    flex-shrink: 0;
+  }
+
+  .component-name {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--fg);
+  }
+
+  .component-desc {
+    font-size: 12px;
+    color: var(--fg2);
+    line-height: 1.6;
+    margin-bottom: 12px;
+  }
+
+  .component-bullets {
+    list-style: none;
+  }
+
+  .component-bullets li {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--fg3);
+    padding: 2px 0;
+    padding-left: 12px;
+    position: relative;
+  }
+
+  .component-bullets li::before {
+    content: '→';
+    position: absolute;
+    left: 0;
+    color: var(--green);
+    opacity: 0.6;
+  }
+
+  /* FILE TREE */
+  .file-tree {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px 24px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    line-height: 2;
+  }
+
+  .tree-dir { color: var(--fg2); }
+  .tree-file { color: var(--fg3); }
+  .tree-highlight { color: var(--green); }
+  .tree-indent { padding-left: 16px; }
+  .tree-indent2 { padding-left: 32px; }
+  .tree-indent3 { padding-left: 48px; }
+
+  /* MEMORY TABLE */
+  .memory-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    margin: 16px 0;
+  }
+
+  .memory-table th {
+    text-align: left;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--fg3);
+    border-bottom: 1px solid var(--border);
+    padding: 8px 12px;
+    font-weight: 400;
+  }
+
+  .memory-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    color: var(--fg2);
+    vertical-align: top;
+  }
+
+  .memory-table td:first-child { color: var(--green); }
+
+  .memory-table tr:last-child td { border-bottom: none; }
+
+  /* SWITCH PRIORITY TABLE */
+  .priority-list {
+    list-style: none;
+    margin: 16px 0;
+  }
+
+  .priority-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 16px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    margin-bottom: 6px;
+  }
+
+  .priority-rank {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--fg3);
+    width: 20px;
+    flex-shrink: 0;
+  }
+
+  .priority-label {
+    font-size: 13px;
+    color: var(--fg);
+    flex: 1;
+  }
+
+  .priority-pill {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    padding: 2px 7px;
+    border-radius: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .pill-red { background: var(--red-dim); color: var(--red); border: 1px solid var(--red); }
+  .pill-amber { background: var(--amber-dim); color: var(--amber); border: 1px solid var(--amber); }
+  .pill-green { background: var(--green-dim); color: var(--green); border: 1px solid var(--green); }
+
+  /* CODE BLOCK */
+  .code-block {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--fg2);
+    line-height: 1.8;
+    overflow-x: auto;
+    margin: 16px 0;
+  }
+
+  .code-block .kw { color: var(--green); }
+  .code-block .str { color: var(--amber); }
+  .code-block .cmt { color: var(--fg3); }
+  .code-block .num { color: var(--blue); }
+
+  /* PRINCIPLES */
+  .principle-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 12px;
+    align-items: flex-start;
+  }
+
+  .principle-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--fg3);
+    min-width: 24px;
+    padding-top: 2px;
+  }
+
+  .principle-body {}
+
+  .principle-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--fg);
+    margin-bottom: 2px;
+  }
+
+  .principle-desc {
+    font-size: 12px;
+    color: var(--fg2);
+    line-height: 1.6;
+  }
+
+  /* OPEN QUESTIONS */
+  .question-item {
+    padding: 10px 16px;
+    border-left: 2px solid var(--border2);
+    margin-bottom: 8px;
+    font-size: 12px;
+    color: var(--fg2);
+    line-height: 1.6;
+  }
+
+  .question-item:hover { border-left-color: var(--amber); color: var(--fg); }
+
+  /* MOBILE SECTION */
+  .mobile-section {
+    display: flex;
+    gap: 40px;
+    align-items: flex-start;
+  }
+
+  .mobile-screens-col {
+    display: flex;
+    flex-direction: column;
+    gap: 48px;
+    flex: 1;
+  }
+
+  .screen-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--fg3);
+    margin-bottom: 8px;
+  }
+
+  .screen-desc {
+    font-size: 12px;
+    color: var(--fg2);
+    max-width: 280px;
+    line-height: 1.6;
+    margin-top: 10px;
+  }
+
+  /* HANDOFF CARD */
+  .handoff-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    margin: 16px 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+  }
+
+  .handoff-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .handoff-title { color: var(--fg); font-size: 12px; font-weight: 500; }
+  .handoff-meta { color: var(--fg3); font-size: 10px; }
+
+  .handoff-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 6px;
+    align-items: flex-start;
+  }
+
+  .handoff-key { color: var(--fg3); min-width: 100px; }
+  .handoff-val { color: var(--fg2); }
+
+  /* ARCH DIAGRAM */
+  .arch-diagram {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 28px;
+    margin: 24px 0;
+    position: relative;
+  }
+
+  .arch-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 8px;
+  }
+
+  .arch-box {
+    border: 1px dashed var(--border2);
+    border-radius: 5px;
+    padding: 8px 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--fg2);
+    text-align: center;
+    min-width: 110px;
+  }
+
+  .arch-box.primary {
+    border-color: var(--green);
+    color: var(--green);
+    background: var(--green-dim);
+  }
+
+  .arch-box.secondary {
+    border-color: var(--amber);
+    color: var(--amber);
+    background: var(--amber-dim);
+  }
+
+  .arch-box.neutral {
+    border-color: var(--border2);
+    color: var(--fg2);
+  }
+
+  .arch-arrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--fg3);
+  }
+
+  .arch-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--fg3);
+    text-align: center;
+    margin-top: 4px;
+  }
+
+  /* MVP TABLE */
+  .mvp-cols {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin: 20px 0;
+  }
+
+  .mvp-col-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .mvp-col-title.include { color: var(--green); }
+  .mvp-col-title.exclude { color: var(--red); }
+
+  .mvp-item {
+    font-size: 12px;
+    color: var(--fg2);
+    padding: 4px 0;
+    padding-left: 14px;
+    position: relative;
+    line-height: 1.5;
+  }
+
+  .mvp-item.include::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-size: 10px; top: 5px; }
+  .mvp-item.exclude::before { content: '✗'; position: absolute; left: 0; color: var(--red); font-size: 10px; top: 5px; }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--fg3); }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <div class="wordmark">dorch</div>
+    <div class="sub">v0.1 — spec doc</div>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-section-label">Overview</div>
+    <a class="sidebar-link active" href="#overview"><span class="dot"></span>Introduction</a>
+    <a class="sidebar-link" href="#workflow"><span class="dot"></span>Core Workflow</a>
+    <a class="sidebar-link" href="#architecture"><span class="dot"></span>Architecture</a>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-section-label">Components</div>
+    <a class="sidebar-link" href="#planner"><span class="dot"></span>Planner</a>
+    <a class="sidebar-link" href="#executor"><span class="dot"></span>Executor</a>
+    <a class="sidebar-link" href="#monitor"><span class="dot"></span>Monitor</a>
+    <a class="sidebar-link" href="#switch"><span class="dot"></span>Switch Controller</a>
+    <a class="sidebar-link" href="#handoff"><span class="dot"></span>Handoff Manager</a>
+    <a class="sidebar-link" href="#memory"><span class="dot"></span>Memory Layer</a>
+    <a class="sidebar-link" href="#workspace"><span class="dot"></span>Workspace</a>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-section-label">Interface</div>
+    <a class="sidebar-link" href="#mobile"><span class="dot"></span>Mobile Dashboard</a>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-section-label">Reference</div>
+    <a class="sidebar-link" href="#principles"><span class="dot"></span>Design Principles</a>
+    <a class="sidebar-link" href="#mvp"><span class="dot"></span>MVP Scope</a>
+    <a class="sidebar-link" href="#files"><span class="dot"></span>File Structure</a>
+    <a class="sidebar-link" href="#questions"><span class="dot"></span>Open Questions</a>
+  </div>
+
+  <div class="sidebar-footer">
+    April 2026 · Draft
+  </div>
+</nav>
+
+<!-- MAIN CONTENT -->
+<div id="app"></div>
+
+<script type="text/babel" src="android-frame.jsx"></script>
+
+<script type="text/babel">
+const { useState } = React;
+
+// ── Wireframe screen components ──────────────────────────────────────────────
+
+const WF = ({ children, style }) => (
+  <div style={{
+    width: '100%', height: '100%',
+    background: '#0d0f0e',
+    display: 'flex', flexDirection: 'column',
+    fontFamily: "'JetBrains Mono', monospace",
+    fontSize: 11,
+    color: '#8a8d88',
+    ...style,
+  }}>{children}</div>
+);
+
+const WFBar = ({ title, right }) => (
+  <div style={{
+    padding: '10px 14px',
+    borderBottom: '1px solid #242825',
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+  }}>
+    <span style={{ color: '#d6d4ce', fontWeight: 600, fontSize: 13 }}>{title}</span>
+    {right && <span style={{ fontSize: 10, color: '#555957' }}>{right}</span>}
+  </div>
+);
+
+const WFRow = ({ label, val, valColor }) => (
+  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 14px', borderBottom: '1px solid #181c1a' }}>
+    <span style={{ color: '#555957', fontSize: 10 }}>{label}</span>
+    <span style={{ color: valColor || '#d6d4ce', fontSize: 10 }}>{val}</span>
+  </div>
+);
+
+const WFBtn = ({ label, accent, small }) => (
+  <div style={{
+    padding: small ? '6px 12px' : '9px 14px',
+    background: accent ? 'oklch(0.72 0.18 145 / 0.12)' : '#181c1a',
+    border: `1px solid ${accent ? 'oklch(0.72 0.18 145)' : '#242825'}`,
+    borderRadius: 5,
+    color: accent ? 'oklch(0.72 0.18 145)' : '#8a8d88',
+    fontSize: 10,
+    textAlign: 'center',
+    cursor: 'pointer',
+  }}>{label}</div>
+);
+
+const WFLog = ({ lines }) => (
+  <div style={{
+    background: '#111513', border: '1px solid #242825',
+    borderRadius: 5, margin: '0 12px',
+    padding: '8px 10px',
+    fontFamily: "'JetBrains Mono', monospace",
+    fontSize: 9.5, lineHeight: 1.7,
+    flex: 1, overflow: 'hidden',
+  }}>
+    {lines.map((l, i) => (
+      <div key={i} style={{ color: l.c || '#555957' }}>{l.t}</div>
+    ))}
+  </div>
+);
+
+const WFDivider = ({ label }) => (
+  <div style={{
+    padding: '6px 14px 2px',
+    fontSize: 9,
+    color: '#555957',
+    textTransform: 'uppercase',
+    letterSpacing: '0.1em',
+  }}>{label}</div>
+);
+
+// Screen 1: Dashboard
+const ScreenDashboard = () => (
+  <WF>
+    <WFBar title="Dorch" right="⚙" />
+    {/* Status banner */}
+    <div style={{
+      margin: '10px 12px 0',
+      padding: '10px 12px',
+      background: 'oklch(0.72 0.18 145 / 0.08)',
+      border: '1px solid oklch(0.72 0.18 145 / 0.3)',
+      borderRadius: 6,
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+        <span style={{ color: 'oklch(0.72 0.18 145)', fontSize: 10, fontWeight: 600 }}>● RUNNING</span>
+        <span style={{ color: '#555957', fontSize: 9 }}>14m 32s</span>
+      </div>
+      <div style={{ color: '#d6d4ce', fontSize: 11, marginBottom: 2 }}>claude-cli</div>
+      <div style={{ color: '#555957', fontSize: 9 }}>auth-project · sprint 01 · task 3/7</div>
+    </div>
+
+    <WFDivider label="current task" />
+    <div style={{ padding: '4px 12px 8px' }}>
+      <div style={{
+        background: '#111513', border: '1px solid #242825',
+        borderRadius: 5, padding: '8px 10px',
+        fontSize: 10, color: '#8a8d88', lineHeight: 1.6,
+      }}>
+        Step 3/7 — Extract JWT validation logic into<br />
+        <span style={{ color: 'oklch(0.72 0.18 145)' }}>auth/validators.js</span><br />
+        <span style={{ color: '#555957', fontSize: 9 }}>acceptance: unit tests pass, no circular deps</span>
+      </div>
+    </div>
+
+    <WFDivider label="quick actions" />
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, padding: '0 12px 8px' }}>
+      <WFBtn label="⏹ Stop Run" />
+      <WFBtn label="⇄ Switch Agent" />
+      <WFBtn label="📋 View Plan" accent />
+      <WFBtn label="📄 Handoff" />
+    </div>
+
+    <WFDivider label="live output (tail)" />
+    <WFLog lines={[
+      { t: '> reading auth/index.js…', c: '#555957' },
+      { t: '> identified 3 validators', c: '#8a8d88' },
+      { t: '> writing validators.js', c: 'oklch(0.72 0.18 145)' },
+      { t: '> 64 tokens/s ▌', c: '#555957' },
+    ]} />
+    <div style={{ height: 8 }} />
+  </WF>
+);
+
+// Screen 2: Live Logs
+const ScreenLogs = () => (
+  <WF>
+    <WFBar title="Live Logs" right="↓ tail" />
+    <div style={{
+      display: 'flex', gap: 6, padding: '8px 12px',
+      borderBottom: '1px solid #242825',
+    }}>
+      {['all', 'stdout', 'stderr', 'events'].map(t => (
+        <div key={t} style={{
+          padding: '3px 8px',
+          borderRadius: 3,
+          background: t === 'all' ? 'oklch(0.72 0.18 145 / 0.12)' : '#181c1a',
+          border: `1px solid ${t === 'all' ? 'oklch(0.72 0.18 145)' : '#242825'}`,
+          color: t === 'all' ? 'oklch(0.72 0.18 145)' : '#555957',
+          fontSize: 9,
+        }}>{t}</div>
+      ))}
+    </div>
+    <div style={{
+      flex: 1, overflow: 'hidden',
+      padding: '8px 12px',
+      background: '#111513',
+      margin: '0 12px 12px',
+      borderRadius: 5,
+      border: '1px solid #242825',
+      fontFamily: "'JetBrains Mono', monospace",
+      fontSize: 9.5, lineHeight: 1.75,
+    }}>
+      {[
+        { t: '09:14:02 [evt] agent started: claude-cli', c: '#555957' },
+        { t: '09:14:03 [out] Reading project-brief.md…', c: '#8a8d88' },
+        { t: '09:14:04 [out] Reading project-summary.md…', c: '#8a8d88' },
+        { t: '09:14:07 [out] Sprint 01 · task 3 — extract validators', c: '#8a8d88' },
+        { t: '09:14:12 [out] Opening auth/index.js', c: '#8a8d88' },
+        { t: '09:14:18 [out] Found validateJWT(), validateScope()', c: '#d6d4ce' },
+        { t: '09:14:22 [out] Creating auth/validators.js', c: 'oklch(0.72 0.18 145)' },
+        { t: '09:14:35 [out] Writing 87 lines…', c: 'oklch(0.72 0.18 145)' },
+        { t: '09:14:36 [out] Updating imports in index.js', c: '#8a8d88' },
+        { t: '09:14:41 [err] ESLint: no-unused-vars ×2', c: 'oklch(0.74 0.16 68)' },
+        { t: '09:14:45 [out] Fixing lint errors…', c: '#8a8d88' },
+        { t: '09:14:52 [out] ▌', c: '#555957' },
+      ].map((l, i) => <div key={i} style={{ color: l.c }}>{l.t}</div>)}
+    </div>
+  </WF>
+);
+
+// Screen 3: Plan view
+const ScreenPlan = () => (
+  <WF>
+    <WFBar title="Sprint 01" right="edit" />
+    <div style={{ padding: '6px 14px', borderBottom: '1px solid #242825' }}>
+      <div style={{ fontSize: 9, color: '#555957', marginBottom: 3 }}>sprint goal · auth module refactor</div>
+      <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+        <div style={{ flex: 1, height: 3, background: '#242825', borderRadius: 2 }}>
+          <div style={{ width: '42%', height: '100%', background: 'oklch(0.72 0.18 145)', borderRadius: 2 }}></div>
+        </div>
+        <span style={{ fontSize: 9, color: 'oklch(0.72 0.18 145)' }}>3/7</span>
+      </div>
+    </div>
+    <div style={{ flex: 1, overflow: 'hidden', padding: '6px 0' }}>
+      {[
+        { n: 1, label: 'Audit existing auth structure', done: true },
+        { n: 2, label: 'Define validator interface contract', done: true },
+        { n: 3, label: 'Extract JWT validators to auth/validators.js', active: true },
+        { n: 4, label: 'Extract session middleware', done: false },
+        { n: 5, label: 'Write unit tests for validators', done: false },
+        { n: 6, label: 'Update route handlers to use new imports', done: false },
+        { n: 7, label: 'Integration test + clean up', done: false },
+      ].map(s => (
+        <div key={s.n} style={{
+          display: 'flex', gap: 8, alignItems: 'flex-start',
+          padding: '7px 14px',
+          borderBottom: '1px solid #181c1a',
+          background: s.active ? 'oklch(0.72 0.18 145 / 0.05)' : 'transparent',
+        }}>
+          <div style={{
+            width: 16, height: 16, borderRadius: '50%', flexShrink: 0,
+            border: `1px solid ${s.done ? 'oklch(0.72 0.18 145)' : s.active ? 'oklch(0.72 0.18 145)' : '#242825'}`,
+            background: s.done ? 'oklch(0.72 0.18 145)' : 'transparent',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 8, color: s.done ? '#0d0f0e' : s.active ? 'oklch(0.72 0.18 145)' : '#555957',
+            marginTop: 1,
+          }}>{s.done ? '✓' : s.n}</div>
+          <div>
+            <div style={{
+              fontSize: 11,
+              color: s.done ? '#555957' : s.active ? '#d6d4ce' : '#8a8d88',
+              textDecoration: s.done ? 'line-through' : 'none',
+              lineHeight: 1.4,
+            }}>{s.label}</div>
+            {s.active && <div style={{ fontSize: 9, color: 'oklch(0.72 0.18 145)', marginTop: 2 }}>in progress</div>}
+          </div>
+        </div>
+      ))}
+    </div>
+    <div style={{ padding: '8px 12px' }}>
+      <WFBtn label="✓ Approve Plan" accent />
+    </div>
+  </WF>
+);
+
+// Screen 4: Handoff viewer
+const ScreenHandoff = () => (
+  <WF>
+    <WFBar title="Latest Handoff" right="history →" />
+    <div style={{ padding: '8px 12px 0' }}>
+      <div style={{
+        background: 'oklch(0.74 0.16 68 / 0.08)',
+        border: '1px solid oklch(0.74 0.16 68 / 0.3)',
+        borderRadius: 6, padding: '8px 10px', marginBottom: 8,
+      }}>
+        <div style={{ fontSize: 9, color: 'oklch(0.74 0.16 68)', marginBottom: 2, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Switch Reason</div>
+        <div style={{ fontSize: 11, color: '#d6d4ce' }}>Rate limit — codex-cli · 09:01:14</div>
+      </div>
+    </div>
+    {[
+      { k: 'from_agent', v: 'codex-cli' },
+      { k: 'task', v: 'step 2 — validator contract' },
+      { k: 'completed', v: 'interface drafted, not committed' },
+      { k: 'uncertain', v: 'error handling approach TBD' },
+      { k: 'next_step', v: 'commit draft, begin extraction' },
+    ].map(r => (
+      <div key={r.k} style={{
+        display: 'flex', gap: 8, padding: '6px 12px',
+        borderBottom: '1px solid #181c1a', alignItems: 'flex-start',
+      }}>
+        <span style={{ color: '#555957', fontSize: 9, minWidth: 90 }}>{r.k}</span>
+        <span style={{ color: '#8a8d88', fontSize: 10, flex: 1, lineHeight: 1.4 }}>{r.v}</span>
+      </div>
+    ))}
+    <WFDivider label="last output" />
+    <WFLog lines={[
+      { t: '> Rate limit: 429 Too Many Requests', c: 'oklch(0.74 0.16 68)' },
+      { t: '> Cooldown required: ~60s', c: '#555957' },
+      { t: '> Triggering switch → claude-cli', c: '#8a8d88' },
+    ]} />
+    <div style={{ padding: '8px 12px', display: 'flex', gap: 6 }}>
+      <div style={{ flex: 1 }}><WFBtn label="← Prev" /></div>
+      <div style={{ flex: 1 }}><WFBtn label="Next →" /></div>
+    </div>
+  </WF>
+);
+
+// Screen 5: Switch agent
+const ScreenSwitch = () => (
+  <WF>
+    <WFBar title="Switch Agent" />
+    <div style={{ padding: '8px 12px' }}>
+      <div style={{
+        padding: '8px 10px', borderRadius: 6,
+        background: '#111513', border: '1px solid #242825',
+        marginBottom: 10, fontSize: 10,
+      }}>
+        <div style={{ color: '#555957', fontSize: 9, marginBottom: 4 }}>current agent</div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ color: 'oklch(0.72 0.18 145)', fontWeight: 600 }}>claude-cli</span>
+          <span style={{ color: '#555957', fontSize: 9 }}>● running · 14m</span>
+        </div>
+      </div>
+
+      <div style={{ fontSize: 9, color: '#555957', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.1em' }}>switch to</div>
+      {[
+        { id: 'codex-cli', note: 'last used 14m ago · rested', ok: true },
+        { id: 'claude-cli', note: 'current agent', ok: false },
+      ].map(a => (
+        <div key={a.id} style={{
+          padding: '8px 10px', borderRadius: 6,
+          background: a.ok ? 'oklch(0.72 0.18 145 / 0.06)' : '#181c1a',
+          border: `1px solid ${a.ok ? 'oklch(0.72 0.18 145 / 0.3)' : '#242825'}`,
+          marginBottom: 6,
+          opacity: a.ok ? 1 : 0.45,
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
+            <span style={{ color: a.ok ? 'oklch(0.72 0.18 145)' : '#555957', fontSize: 11 }}>{a.id}</span>
+            {a.ok && <span style={{ fontSize: 9, color: 'oklch(0.72 0.18 145)' }}>select</span>}
+          </div>
+          <div style={{ fontSize: 9, color: '#555957' }}>{a.note}</div>
+        </div>
+      ))}
+
+      <div style={{ marginTop: 8 }}>
+        <WFDivider label="switch reason (optional)" />
+        <div style={{
+          margin: '4px 0 0',
+          padding: '7px 10px',
+          background: '#111513', border: '1px solid #242825',
+          borderRadius: 5, fontSize: 10, color: '#555957',
+          fontFamily: "'JetBrains Mono', monospace",
+        }}>manual override…</div>
+      </div>
+    </div>
+
+    <div style={{ padding: '4px 12px 0', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+      <WFBtn label="Cancel" />
+      <WFBtn label="⇄ Switch Now" accent />
+    </div>
+  </WF>
+);
+
+// ── Main app ─────────────────────────────────────────────────────────────────
+
+const SCREENS = [
+  { id: 'dashboard', label: 'Status',   comp: ScreenDashboard },
+  { id: 'logs',      label: 'Live Logs',comp: ScreenLogs },
+  { id: 'plan',      label: 'Sprint Plan', comp: ScreenPlan },
+  { id: 'handoff',   label: 'Handoff',  comp: ScreenHandoff },
+  { id: 'switch',    label: 'Switch',   comp: ScreenSwitch },
+];
+
+function App() {
+  const [activeScreen, setActiveScreen] = useState(0);
+  const Screen = SCREENS[activeScreen].comp;
+
+  return (
+    <div className="main">
+
+      {/* HERO */}
+      <section className="section hero" id="overview">
+        <div className="hero-eyebrow">system spec · v0.1-draft</div>
+        <h1 className="hero-title"><em>Dorch</em></h1>
+        <p className="hero-desc">
+          A VPS-hosted coordination layer that runs multiple coding agents—Codex CLI and Claude CLI—against
+          a shared plan and workspace. Agents are interchangeable; Dorch's memory is the source of truth.
+        </p>
+        <div className="tag-row">
+          <span className="tag green">MVP</span>
+          <span className="tag amber">Mobile-first</span>
+          <span className="tag">VPS · Node.js</span>
+          <span className="tag">CLI agents</span>
+          <span className="tag">File-based memory</span>
+        </div>
+      </section>
+
+      <hr className="divider" />
+
+      {/* WORKFLOW */}
+      <section className="section" id="workflow">
+        <div className="section-badge">§ 01 — workflow</div>
+        <h2 className="section-title">Core <span>Workflow</span></h2>
+        <p className="section-lead">
+          Ten steps, deterministic. Each agent runs until it can't continue, hands off structured context, and
+          the next agent picks up without relying on chat history.
+        </p>
+
+        <div className="flow">
+          {[
+            { n:1, label:'User defines task', sub:'→ sent to Planner', active:true },
+            { n:2, label:'Planner creates global plan', sub:'→ written to memory/global-plan.md' },
+            { n:3, label:'Executor starts Agent A', sub:'→ feeds plan + task + handoff context' },
+            { n:4, label:'Monitor watches Agent A', sub:'→ streaming stdout/stderr evaluation' },
+            { n:5, label:'Agent A works until blocked', sub:'→ completion / failure / rate-limit / stall / timeout / manual' },
+            { n:6, label:'Handoff Manager summarises', sub:'→ writes memory/latest-handoff.md' },
+            { n:7, label:'Switch Controller selects Agent B', sub:'→ first-trigger-wins priority' },
+            { n:8, label:'Executor starts Agent B', sub:'→ fresh context from memory layer' },
+            { n:9, label:'Agent B continues from handoff', sub:'→ no reliance on prior chat history' },
+            { n:10, label:'Repeat until complete', sub:'→ user notified; review optional' },
+          ].map((s, i, arr) => (
+            <div className={`flow-step${s.active ? ' active' : ''}`} key={s.n}>
+              <div className="flow-left">
+                <div className="flow-num">{s.n}</div>
+                {i < arr.length - 1 && <div className="flow-line"></div>}
+              </div>
+              <div className="flow-body">
+                <div className="flow-label">{s.label}</div>
+                <div className="flow-sub">{s.sub}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <hr className="divider" />
+
+      {/* ARCHITECTURE */}
+      <section className="section" id="architecture">
+        <div className="section-badge">§ 02 — architecture</div>
+        <h2 className="section-title">System <span>Architecture</span></h2>
+        <p className="section-lead">
+          Eight components, each with a single clear responsibility. All state flows through the Memory Layer.
+        </p>
+
+        <div className="arch-diagram">
+          <div className="arch-row">
+            <div className="arch-box neutral">Mobile UI</div>
+            <div className="arch-arrow">⟷</div>
+            <div className="arch-box primary">Dorch</div>
+          </div>
+          <div style={{ display:'flex', justifyContent:'center', fontSize:12, color:'var(--fg3)', margin:'6px 0' }}>↕</div>
+          <div className="arch-row">
+            <div className="arch-box neutral" style={{ minWidth: 80 }}>Planner</div>
+            <div className="arch-arrow" style={{ fontSize:10 }}>·</div>
+            <div className="arch-box neutral" style={{ minWidth: 80 }}>Monitor</div>
+            <div className="arch-arrow" style={{ fontSize:10 }}>·</div>
+            <div className="arch-box neutral" style={{ minWidth: 80 }}>Switch Ctrl</div>
+          </div>
+          <div style={{ display:'flex', justifyContent:'center', fontSize:12, color:'var(--fg3)', margin:'6px 0' }}>↕</div>
+          <div className="arch-row">
+            <div className="arch-box secondary">Executor</div>
+            <div className="arch-arrow">⟶</div>
+            <div className="arch-box neutral" style={{ minWidth: 80 }}>Codex CLI</div>
+            <div className="arch-arrow" style={{ fontSize:10 }}>/</div>
+            <div className="arch-box neutral" style={{ minWidth: 80 }}>Claude CLI</div>
+          </div>
+          <div style={{ display:'flex', justifyContent:'center', fontSize:12, color:'var(--fg3)', margin:'6px 0' }}>↕</div>
+          <div className="arch-row">
+            <div className="arch-box primary" style={{ minWidth: 140 }}>Memory Layer</div>
+            <div className="arch-arrow">⟷</div>
+            <div className="arch-box neutral" style={{ minWidth: 140 }}>Workspace / Repo</div>
+          </div>
+          <div className="arch-label" style={{ marginTop: 12 }}>Handoff Manager feeds Memory; Memory feeds Executor on every agent start</div>
+        </div>
+      </section>
+
+      <hr className="divider" />
+
+      {/* COMPONENTS */}
+      <section className="section" id="planner">
+        <div className="section-badge">§ 03 — components</div>
+        <h2 className="section-title">System <span>Components</span></h2>
+        <p className="section-lead">Eight discrete components. Each owns one responsibility and communicates through memory files or process IO.</p>
+
+        <div className="component-grid">
+          {[
+            {
+              icon:'PL', name:'Planner',
+              desc:'Interprets the user task, creates and updates the global plan, and defines acceptance criteria.',
+              bullets:['Breaks task into actionable steps','Defines acceptance criteria per step','Updates plan.md after each completed step','Source: user input + current repo state'],
+            },
+            {
+              icon:'EX', name:'Executor / Agent Runner',
+              desc:'Starts and stops Codex CLI or Claude CLI, feeding the agent structured context from the memory layer.',
+              bullets:['Spawns CLI process with context args','Streams stdout/stderr to Monitor','Stops agent on Switch signal','Reconstructs context on every start'],
+            },
+            {
+              icon:'MN', name:'Monitor',
+              desc:'Watches the active agent in real-time. Evaluates streaming output for trigger conditions without waiting for the process to finish.',
+              bullets:['Streaming stdout/stderr evaluation','Detects: rate-limit, cooldown, errors, stalls','Tracks time since last output','Emits trigger events to Switch Controller'],
+            },
+            {
+              icon:'SW', name:'Switch Controller',
+              desc:'Decides when to stop the current agent and which agent to run next. First-trigger-wins priority model.',
+              bullets:['Listens for trigger events from Monitor','Applies priority order (see §05)','Selects next available agent','Signals Executor + Handoff Manager'],
+            },
+            {
+              icon:'HF', name:'Handoff Manager',
+              desc:'Produces a structured handoff document whenever an agent stops, for any reason.',
+              bullets:['Records switch reason + agent info','Summarises what was completed','Captures last console output','Writes latest-handoff.md + appends history'],
+            },
+            {
+              icon:'ML', name:'Memory Layer',
+              desc:'Per-project file-based markdown store. The source of truth for all agent context. No database in MVP.',
+              bullets:['project-brief.md, project-summary.md','current-sprint.md, sprints/sprint-N.md','current-task.md, latest-handoff.md','All access via memory/index.js — no direct fs calls elsewhere'],
+            },
+            {
+              icon:'WS', name:'Workspace',
+              desc:'Per-project git repo. Created via git init + push upstream (new project) or clone (existing). Agents work on sprint branches.',
+              bullets:['One workspace per project','Sprint branch: agent/sprint-N-slug','git init or clone at project creation','Merged to main on sprint close (user approval)'],
+            },
+            {
+              icon:'UI', name:'Mobile Interface',
+              desc:'Minimal web UI served from VPS. Root: project picker. Within a project: Chat, Status, Logs, Sprint Plan, Handoff.',
+              bullets:['Projects list + create new','Chat tab — persistent Planner conversation','Status + live logs + sprint plan','Manual agent switch, sprint close + merge'],
+            },
+          ].map(c => (
+            <div className="component-card" key={c.icon} id={c.icon === 'SW' ? 'switch' : c.icon === 'HF' ? 'handoff' : c.icon === 'ML' ? 'memory' : c.icon === 'WS' ? 'workspace' : c.icon === 'UI' ? '_' : undefined}>
+              <div className="component-card-header">
+                <div className="component-icon">{c.icon}</div>
+                <div className="component-name">{c.name}</div>
+              </div>
+              <div className="component-desc">{c.desc}</div>
+              <ul className="component-bullets">
+                {c.bullets.map((b,i) => <li key={i}>{b}</li>)}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <hr className="divider" />
+
+      {/* MONITOR / SWITCH TRIGGERS */}
+      <section className="section" id="monitor">
+        <div className="section-badge">§ 04 — monitor</div>
+        <h2 className="section-title">Monitor <span>Triggers</span></h2>
+        <p className="section-lead">The Monitor emits one of five trigger events. The Switch Controller applies a first-trigger-wins model — the first condition met immediately initiates a switch.</p>
+
+        <ul className="priority-list">
+          {[
+            { rank:'P1', label:'Manual override from user', pill:'pill-red', pillLabel:'critical' },
+            { rank:'P2', label:'Hard process failure or crash', pill:'pill-red', pillLabel:'critical' },
+            { rank:'P3', label:'Agent outputs BLOCKED: <reason>', pill:'pill-red', pillLabel:'critical' },
+            { rank:'P4', label:'Rate-limit or cooldown detected in output', pill:'pill-amber', pillLabel:'blocking' },
+            { rank:'P5', label:'No-output timeout (3 min)', pill:'pill-amber', pillLabel:'blocking' },
+            { rank:'P6', label:'Maximum runtime timeout (45 min)', pill:'pill-green', pillLabel:'soft' },
+          ].map(p => (
+            <li className="priority-item" key={p.rank}>
+              <span className="priority-rank">{p.rank}</span>
+              <span className="priority-label">{p.label}</span>
+              <span className={`priority-pill ${p.pill}`}>{p.pillLabel}</span>
+            </li>
+          ))}
+        </ul>
+
+        <div className="code-block">
+          <span className="cmt">// triggers.js — detection patterns (MVP)</span>{'\n'}
+          <span className="kw">const</span> TRIGGERS = {'{'}
+            {'\n'}  rate_limit: <span className="str">/rate.?limit|429|quota.?exceeded|too many requests/i</span>,
+            {'\n'}  cooldown:   <span className="str">/cooldown|please wait|retry after/i</span>,
+            {'\n'}  error:      <span className="str">/fatal|uncaughtException|ENOENT|SIGKILL/i</span>,
+            {'\n'}  no_output:  <span className="cmt">/* 3 min (180000ms) with no stdout/stderr bytes */</span>
+            {'\n'}  max_time:   <span className="cmt">/* 45 min (2700000ms), configurable */</span>
+          {'\n'}{'}'};
+        </div>
+      </section>
+
+      <hr className="divider" />
+
+      {/* HANDOFF */}
+      <section className="section" id="handoff">
+        <div className="section-badge">§ 05 — handoff</div>
+        <h2 className="section-title">Handoff <span>Schema</span></h2>
+        <p className="section-lead">Every agent termination produces a structured handoff. This becomes the primary context passed to the next agent alongside the global plan.</p>
+
+        <div className="handoff-card">
+          <div className="handoff-header">
+            <span className="handoff-title">latest-handoff.md · example</span>
+            <span className="handoff-meta">2026-04-26 09:01:14</span>
+          </div>
+          {[
+            { k:'switch_reason', v:'rate_limit' },
+            { k:'from_agent', v:'codex-cli' },
+            { k:'task', v:'step 2 — define validator interface' },
+            { k:'completed', v:'Drafted interface in auth/validators.js (not committed)' },
+            { k:'git_diff', v:'+87 lines auth/validators.js (unstaged)' },
+            { k:'uncertain', v:'Error handling approach unresolved' },
+            { k:'last_output', v:'> Rate limit: 429 Too Many Requests…' },
+            { k:'next_step', v:'Commit draft, begin extraction into validators.js' },
+          ].map(r => (
+            <div className="handoff-row" key={r.k}>
+              <span className="handoff-key">{r.k}</span>
+              <span className="handoff-val">{r.v}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <hr className="divider" />
+
+      {/* MEMORY */}
+      <section className="section" id="memory">
+        <div className="section-badge">§ 06 — memory</div>
+        <h2 className="section-title">Memory <span>Layer</span></h2>
+        <p className="section-lead">File-based markdown memory for MVP. Every agent start reads from these files to reconstruct full context without relying on chat history.</p>
+
+        <p style={{ fontSize:12, color:'var(--fg3)', fontFamily:"'JetBrains Mono', monospace", marginBottom:12 }}>
+          All files live under <span style={{ color:'var(--green)' }}>projects/{'<slug>'}/memory/</span>. Each project has its own isolated memory store.
+        </p>
+        <table className="memory-table">
+          <thead>
+            <tr>
+              <th>file</th>
+              <th>purpose</th>
+              <th>written by</th>
+              <th>read by</th>
+            </tr>
+          </thead>
+          <tbody>
+            {[
+              { f:'project-brief.md',     p:'What this project is — stable description written at creation',  w:'User / Planner',   r:'Executor, Planner' },
+              { f:'project-summary.md',   p:'Auto-updated snapshot: architecture + key decisions',            w:'Planner (on close)', r:'Executor, Planner' },
+              { f:'current-sprint.md',    p:'Active sprint goal, status, task list',                          w:'Switch Ctrl',      r:'Executor, Mobile UI' },
+              { f:'sprints/sprint-N.md',  p:'Permanent sprint summary — written at close (~500 tokens)',      w:'Planner (on close)', r:'Next sprint context' },
+              { f:'current-task.md',      p:'Active task step, context, constraints',                        w:'Planner, Switch Ctrl', r:'Executor' },
+              { f:'latest-handoff.md',    p:'Most recent handoff summary',                                    w:'Handoff Mgr',      r:'Executor, Mobile UI' },
+              { f:'handoff-history.md',   p:'Append-only log of all handoffs this sprint',                   w:'Handoff Mgr',      r:'Audit / debug' },
+              { f:'run-log.md',           p:'Timestamped event stream (start/stop/switch)',                   w:'Dorch',            r:'Mobile UI, crash recovery' },
+              { f:'review-notes.md',      p:'User annotations + approval decisions',                          w:'Mobile UI / User', r:'Planner' },
+            ].map(r => (
+              <tr key={r.f}>
+                <td>{r.f}</td>
+                <td>{r.p}</td>
+                <td>{r.w}</td>
+                <td>{r.r}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </section>
+
+      <hr className="divider" />
+
+      {/* MOBILE */}
+      <section className="section" id="mobile">
+        <div className="section-badge">§ 07 — mobile interface</div>
+        <h2 className="section-title">Mobile <span>Dashboard</span></h2>
+        <p className="section-lead">
+          Minimal web UI served from the VPS. Designed for a single-hand phone workflow. Root screen is the project picker. Within a project: Chat (persistent Planner), Status, Logs, Sprint Plan, Handoff.
+        </p>
+
+        {/* Screen picker */}
+        <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:28 }}>
+          {SCREENS.map((s,i) => (
+            <button key={s.id} onClick={() => setActiveScreen(i)} style={{
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: 10,
+              padding: '5px 12px',
+              borderRadius: 4,
+              border: `1px solid ${i === activeScreen ? 'var(--green)' : 'var(--border2)'}`,
+              background: i === activeScreen ? 'var(--green-dim)' : 'var(--bg2)',
+              color: i === activeScreen ? 'var(--green)' : 'var(--fg3)',
+              cursor: 'pointer',
+            }}>{s.label}</button>
+          ))}
+        </div>
+
+        <div style={{ display:'flex', gap:32, alignItems:'flex-start' }}>
+          {/* Android frame */}
+          <div style={{ flexShrink:0 }}>
+            <AndroidDevice width={280} dark={true}>
+              <Screen />
+            </AndroidDevice>
+          </div>
+
+          {/* Screen notes */}
+          <div style={{ paddingTop:48 }}>
+            {[
+              {
+                label:'01 · Status',
+                items:[
+                  'Header shows project name + sprint N',
+                  'Status banner: agent, elapsed time, task N/M',
+                  'Four quick-action buttons: stop, switch, plan, handoff',
+                  'Tail of live output at bottom',
+                ],
+              },
+              {
+                label:'02 · Live Logs',
+                items:[
+                  'Filterable by channel: all / stdout / stderr / events',
+                  'Auto-tails on load; tap to pause scroll',
+                  'Context reads show project-brief + project-summary filenames',
+                  'Timestamped entries from per-project run-log.md',
+                ],
+              },
+              {
+                label:'03 · Sprint Plan',
+                items:[
+                  'Header: sprint N + goal slug',
+                  'Progress bar + task count at top',
+                  'Numbered task list — tap to expand acceptance criteria',
+                  'Close Sprint button triggers summary write + merge approval',
+                ],
+              },
+              {
+                label:'04 · Handoff',
+                items:[
+                  'Shows latest-handoff.md in structured form',
+                  'Switch reason prominently flagged with colour',
+                  'Key/value rows: from_agent, task, completed, next_step',
+                  'Prev/Next navigate sprint handoff history',
+                ],
+              },
+              {
+                label:'05 · Switch Agent',
+                items:[
+                  'Shows current agent + elapsed time',
+                  'Lists available agents with cooldown status',
+                  'Optional free-text reason field',
+                  'Switch Now fires manual override trigger (P1)',
+                ],
+              },
+            ][activeScreen].items.map((item, i) => (
+              <div key={i} style={{
+                display:'flex', gap:10, marginBottom:10, alignItems:'flex-start',
+              }}>
+                <span style={{
+                  fontFamily:"'JetBrains Mono', monospace",
+                  fontSize:9, color:'var(--green)',
+                  paddingTop:2, flexShrink:0,
+                }}>→</span>
+                <span style={{ fontSize:12, color:'var(--fg2)', lineHeight:1.6 }}>{item}</span>
+              </div>
+            ))}
+            <div style={{
+              marginTop:16,
+              fontFamily:"'JetBrains Mono', monospace",
+              fontSize:10, color:'var(--fg3)',
+              padding:'8px 12px',
+              background:'var(--bg2)',
+              border:'1px solid var(--border)',
+              borderRadius:5,
+            }}>
+              {SCREENS[activeScreen].label} · screen {activeScreen+1}/{SCREENS.length}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <hr className="divider" />
+
+      {/* PRINCIPLES */}
+      <section className="section" id="principles">
+        <div className="section-badge">§ 08 — design principles</div>
+        <h2 className="section-title">Design <span>Principles</span></h2>
+        <p className="section-lead">Five rules that govern trade-off decisions during implementation. When in doubt, apply these in order.</p>
+
+        <div style={{ marginTop:8 }}>
+          {[
+            { n:'01', t:'Agents are stateless workers', d:'Never trust an agent to remember anything. Reconstruct full context from memory files on every start.' },
+            { n:'02', t:'Shared context must be explicit', d:'Do not rely on hidden chat history. All important context lives in files and is intentionally passed in.' },
+            { n:'03', t:'First blocking condition wins', d:'Switch as soon as one trigger fires. Do not wait to confirm or retry. Speed of recovery beats precision.' },
+            { n:'04', t:'Never get stuck', d:'A dumb deterministic switch is better than a smart system that freezes. The MVP prioritises continuous progress.' },
+            { n:'05', t:'Simple first, smart later', d:'Start rule-based. Add cost routing, parallel agents, and smart planner after the core loop is proven stable.' },
+          ].map(p => (
+            <div className="principle-row" key={p.n}>
+              <div className="principle-num">{p.n}</div>
+              <div className="principle-body">
+                <div className="principle-title">{p.t}</div>
+                <div className="principle-desc">{p.d}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <hr className="divider" />
+
+      {/* MVP */}
+      <section className="section" id="mvp">
+        <div className="section-badge">§ 09 — mvp scope</div>
+        <h2 className="section-title">MVP <span>Scope</span></h2>
+        <p className="section-lead">Intentionally constrained. Ship the core loop first.</p>
+
+        <div className="mvp-cols">
+          <div>
+            <div className="mvp-col-title include">✓ Include in MVP</div>
+            {[
+              'VPS deployment',
+              'CLI-only agent execution',
+              'Codex CLI adapter',
+              'Claude CLI adapter',
+              'Multiple projects (create, list, pick)',
+              'Project creation: git init or clone + push upstream',
+              'Sprint model (goal → tasks → close → merge)',
+              'Per-project file-based markdown memory',
+              'Persistent Planner chat per sprint',
+              'Context compression at sprint close',
+              'Basic switch detection (5 triggers)',
+              'Live log streaming',
+              'Manual override from mobile',
+              'Mobile-friendly web UI',
+            ].map(i => <div key={i} className="mvp-item include">{i}</div>)}
+          </div>
+          <div>
+            <div className="mvp-col-title exclude">✗ Post-MVP only</div>
+            {[
+              'SQLite recall layer (cross-sprint search)',
+              'Auto-update project-summary.md after each sprint',
+              'Sprint templates',
+              'Sprint branching from non-main base',
+              'Cost-based model routing',
+              'Parallel agent execution',
+              'GitHub PR automation',
+              'Full review-agent workflow',
+              'Rate-limit prediction',
+              'Agent performance analytics',
+            ].map(i => <div key={i} className="mvp-item exclude">{i}</div>)}
+          </div>
+        </div>
+      </section>
+
+      <hr className="divider" />
+
+      {/* FILE STRUCTURE */}
+      <section className="section" id="files">
+        <div className="section-badge">§ 10 — file structure</div>
+        <h2 className="section-title">File <span>Structure</span></h2>
+        <p className="section-lead">Suggested MVP layout. Keep server, web, and memory concerns separated from day one.</p>
+
+        <div className="file-tree">
+          <div className="tree-dir">dorch/</div>
+          <div className="tree-indent tree-highlight">dorch.js</div>
+          <div className="tree-indent tree-highlight">dorch-bus.js</div>
+          <div className="tree-indent tree-highlight">config.js</div>
+          <div className="tree-indent tree-dir">agents/</div>
+          <div className="tree-indent2 tree-highlight">codex.adapter.js</div>
+          <div className="tree-indent2 tree-highlight">claude.adapter.js</div>
+          <div className="tree-indent tree-dir">monitor/</div>
+          <div className="tree-indent2 tree-highlight">monitor.js</div>
+          <div className="tree-indent2 tree-highlight">triggers.js</div>
+          <div className="tree-indent tree-dir">handoff/</div>
+          <div className="tree-indent2 tree-highlight">handoff-manager.js</div>
+          <div className="tree-indent tree-dir">planner/</div>
+          <div className="tree-indent2 tree-highlight">planner.js</div>
+          <div className="tree-indent tree-dir">memory/</div>
+          <div className="tree-indent2 tree-highlight">index.js  ← all file I/O here only</div>
+          <div className="tree-indent tree-dir">switch-controller/</div>
+          <div className="tree-indent2 tree-highlight">index.js</div>
+          <div className="tree-indent tree-dir">executor/</div>
+          <div className="tree-indent2 tree-highlight">index.js</div>
+          <div className="tree-indent tree-dir">server/</div>
+          <div className="tree-indent2 tree-highlight">index.js</div>
+          <div className="tree-indent tree-dir">projects/  ← gitignored, created at runtime</div>
+          <div className="tree-indent2 tree-dir">{'<slug>'}/</div>
+          <div className="tree-indent3 tree-dir">workspace/  ← git clone or git init</div>
+          <div className="tree-indent3 tree-dir">memory/</div>
+          <div className="tree-indent" style={{ paddingLeft:64 }}><span className="tree-file">project-brief.md</span></div>
+          <div className="tree-indent" style={{ paddingLeft:64 }}><span className="tree-file">project-summary.md</span></div>
+          <div className="tree-indent" style={{ paddingLeft:64 }}><span className="tree-file">current-sprint.md</span></div>
+          <div className="tree-indent" style={{ paddingLeft:64 }}><span className="tree-file">sprints/sprint-01.md …</span></div>
+          <div className="tree-indent" style={{ paddingLeft:64 }}><span className="tree-file">current-task.md</span></div>
+          <div className="tree-indent" style={{ paddingLeft:64 }}><span className="tree-file">latest-handoff.md</span></div>
+          <div className="tree-indent" style={{ paddingLeft:64 }}><span className="tree-file">run-log.md</span></div>
+          <div className="tree-indent3 tree-dir">planner/</div>
+          <div className="tree-indent" style={{ paddingLeft:64 }}><span className="tree-file">current-conversation.jsonl</span></div>
+          <div className="tree-indent" style={{ paddingLeft:64 }}><span className="tree-file">sprint-01-conversation.jsonl</span></div>
+          <div className="tree-indent tree-dir">docs/</div>
+          <div className="tree-indent2 tree-file">00-project-brief.md … 12-project-sprint-model.md</div>
+        </div>
+      </section>
+
+      <hr className="divider" />
+
+      {/* RESOLVED DECISIONS */}
+      <section className="section" id="questions">
+        <div className="section-badge">§ 11 — resolved decisions</div>
+        <h2 className="section-title">Resolved <span>Decisions</span></h2>
+        <p className="section-lead">All design questions resolved. Canonical reference is <span style={{ fontFamily:"'JetBrains Mono', monospace", color:'var(--green)' }}>docs/09-decisions.md</span>.</p>
+
+        {[
+          { q:'How do agents share a codebase?', a:'One sprint branch per sprint (agent/sprint-N-slug). One write-capable agent at a time. Agents commit to the sprint branch, never to main.' },
+          { q:'How detailed should handoffs be?', a:'500–800 tokens. Structured fixed headings. All 7 sections required — completed, in-progress, files, blockers, last output, next step.' },
+          { q:'How is task completion determined?', a:'Contract-driven. Agent outputs STEP COMPLETE → Dorch runs config.testCommand. Step advances only if exit code is 0.' },
+          { q:'How do we prevent infinite switch loops?', a:'Hard limits: maxSwitchesPerTask=6, maxConsecutiveFailures=3. Both rate-limited → pause and wait for cooldown. Never loop.' },
+          { q:'How is the next agent selected?', a:'Round-robin in MVP: codex-cli → claude-cli → …. If departing agent was rate-limited, always switch to the other.' },
+          { q:'When does review happen?', a:'At task completion or manual trigger only. Not after every switch.' },
+          { q:'What requires user approval?', a:'Plan creation, plan changes, sprint close + merge. Agent switching, file edits, test runs, commits to sprint branch — fully autonomous.' },
+          { q:'How much git autonomy do agents have?', a:'May edit, add, commit to sprint branch. May not commit to main, merge, force push, delete branches, or rewrite history.' },
+          { q:'How is work organised?', a:'Project → Sprint → Task. Sprint = branch + conversation + tasks. Closes on merge. Context compressed into sprint summary at close.' },
+          { q:'How is a new project created?', a:'git init in workspace + push upstream (if no repoUrl), or clone from repoUrl. Dorch creates folder tree and initialises all memory files.' },
+        ].map((r, i) => (
+          <div key={i} style={{ padding:'10px 16px', borderLeft:'2px solid var(--green)', marginBottom:8, background:'var(--bg2)', borderRadius:'0 5px 5px 0' }}>
+            <div style={{ fontSize:12, color:'var(--fg)', marginBottom:3 }}>{r.q}</div>
+            <div style={{ fontSize:11, color:'var(--fg3)', lineHeight:1.6, fontFamily:"'JetBrains Mono', monospace" }}>→ {r.a}</div>
+          </div>
+        ))}
+      </section>
+
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('app')).render(<App />);
+</script>
+</body>
+</html>

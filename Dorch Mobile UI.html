@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dorch — Mobile UI Prototype</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #080a09;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: 'Inter', sans-serif;
+  }
+  .prototype-wrap {
+    display: flex;
+    gap: 40px;
+    align-items: flex-start;
+    padding: 40px;
+  }
+  .frame-col { flex-shrink: 0; }
+  .notes-col {
+    padding-top: 60px;
+    width: 260px;
+    flex-shrink: 0;
+  }
+  .note-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #555957;
+    margin-bottom: 12px;
+  }
+  .note-item {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+    font-size: 11px;
+    color: #8a8d88;
+    line-height: 1.5;
+  }
+  .note-item span:first-child {
+    color: oklch(0.72 0.18 145);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    flex-shrink: 0;
+    padding-top: 2px;
+  }
+  .screen-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: oklch(0.72 0.18 145);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 16px;
+    padding: 4px 8px;
+    border: 1px solid oklch(0.72 0.18 145 / 0.3);
+    border-radius: 3px;
+    display: inline-block;
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script type="text/babel" src="ui/android-frame.jsx"></script>
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+// ── Design tokens ────────────────────────────────────────────────────────────
+const C = {
+  bg:        '#0d0f0e',
+  bg2:       '#111513',
+  bg3:       '#181c1a',
+  border:    '#242825',
+  border2:   '#2e3430',
+  fg:        '#d6d4ce',
+  fg2:       '#8a8d88',
+  fg3:       '#555957',
+  green:     'oklch(0.72 0.18 145)',
+  greenDim:  'oklch(0.72 0.18 145 / 0.12)',
+  amber:     'oklch(0.74 0.16 68)',
+  amberDim:  'oklch(0.74 0.16 68 / 0.12)',
+  red:       'oklch(0.66 0.18 22)',
+  redDim:    'oklch(0.66 0.18 22 / 0.12)',
+  blue:      'oklch(0.72 0.14 240)',
+};
+const mono = "'JetBrains Mono', monospace";
+
+// ── Shared components ────────────────────────────────────────────────────────
+const Screen = ({ children }) => (
+  <div style={{ width:'100%', height:'100%', background: C.bg, display:'flex', flexDirection:'column', overflow:'hidden', fontFamily:"'Inter', sans-serif", fontSize:13, color: C.fg }}>
+    {children}
+  </div>
+);
+
+const TopBar = ({ title, right, onBack, sub }) => (
+  <div style={{ padding:'10px 14px 8px', borderBottom:`1px solid ${C.border}`, flexShrink:0 }}>
+    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+      {onBack
+        ? <button onClick={onBack} style={{ background:'none', border:'none', color: C.fg2, fontSize:18, cursor:'pointer', padding:0, lineHeight:1 }}>‹</button>
+        : <span style={{ width:18 }}></span>}
+      <span style={{ fontFamily: mono, fontSize:12, fontWeight:600, color: C.fg }}>{title}</span>
+      <span style={{ fontSize:11, color: C.fg3, fontFamily: mono }}>{right || ''}</span>
+    </div>
+    {sub && <div style={{ textAlign:'center', fontSize:10, color: C.fg3, fontFamily: mono, marginTop:3 }}>{sub}</div>}
+  </div>
+);
+
+const Btn = ({ label, accent, danger, onPress, small, full }) => (
+  <button onClick={onPress} style={{
+    padding: small ? '6px 12px' : '9px 14px',
+    background: danger ? C.redDim : accent ? C.greenDim : C.bg3,
+    border: `1px solid ${danger ? C.red : accent ? C.green : C.border2}`,
+    borderRadius: 6,
+    color: danger ? C.red : accent ? C.green : C.fg2,
+    fontSize: 11,
+    fontFamily: mono,
+    cursor: 'pointer',
+    width: full ? '100%' : undefined,
+    textAlign: 'center',
+  }}>{label}</button>
+);
+
+const Pill = ({ label, color }) => (
+  <span style={{
+    fontFamily: mono, fontSize: 8,
+    padding: '2px 6px', borderRadius: 3,
+    textTransform: 'uppercase', letterSpacing: '0.08em',
+    background: color === 'red' ? C.redDim : color === 'amber' ? C.amberDim : C.greenDim,
+    color: color === 'red' ? C.red : color === 'amber' ? C.amber : C.green,
+    border: `1px solid ${color === 'red' ? C.red : color === 'amber' ? C.amber : C.green}`,
+  }}>{label}</span>
+);
+
+const Divider = ({ label }) => (
+  <div style={{ padding: '5px 12px 2px', fontSize: 9, color: C.fg3, fontFamily: mono, textTransform:'uppercase', letterSpacing:'0.1em', flexShrink:0 }}>{label}</div>
+);
+
+const Scroll = ({ children, style }) => (
+  <div style={{ flex:1, overflowY:'auto', ...style }}>{children}</div>
+);
+
+// ── Bottom Nav ────────────────────────────────────────────────────────────────
+const NAV = [
+  { id:'chat',    icon:'✦', label:'Chat'   },
+  { id:'dash',    icon:'⬡', label:'Status' },
+  { id:'logs',    icon:'≡', label:'Logs'   },
+  { id:'plan',    icon:'◎', label:'Plan'   },
+  { id:'handoff', icon:'⇄', label:'Handoff'},
+];
+
+const BottomNav = ({ active, onNav }) => (
+  <div style={{
+    display:'flex', borderTop:`1px solid ${C.border}`,
+    background: C.bg2, flexShrink:0,
+  }}>
+    {NAV.map(n => (
+      <button key={n.id} onClick={() => onNav(n.id)} style={{
+        flex:1, padding:'8px 4px 6px',
+        background:'none', border:'none', cursor:'pointer',
+        display:'flex', flexDirection:'column', alignItems:'center', gap:2,
+      }}>
+        <span style={{ fontSize:16, color: active===n.id ? C.green : C.fg3 }}>{n.icon}</span>
+        <span style={{ fontSize:8, fontFamily: mono, color: active===n.id ? C.green : C.fg3, textTransform:'uppercase', letterSpacing:'0.08em' }}>{n.label}</span>
+      </button>
+    ))}
+  </div>
+);
+
+// ── SCREEN: Dashboard ─────────────────────────────────────────────────────────
+const LOG_LINES = [
+  { t:'> reading auth/index.js…',      c: C.fg3 },
+  { t:'> identified 3 validators',     c: C.fg2 },
+  { t:'> writing validators.js',       c: C.green },
+  { t:'> 64 tokens/s',                 c: C.fg3 },
+  { t:'> git add auth/validators.js',  c: C.green },
+  { t:'> running npm test…',           c: C.fg2 },
+  { t:'✓ 14 tests passed',             c: C.green },
+  { t:'> STEP COMPLETE',               c: C.green },
+];
+
+function ScreenDash({ onNav, onSwitch }) {
+  const [tailIdx, setTailIdx] = useState(3);
+  useEffect(() => {
+    const t = setInterval(() => setTailIdx(i => Math.min(i + 1, LOG_LINES.length - 1)), 1800);
+    return () => clearInterval(t);
+  }, []);
+  return (
+    <Screen>
+      <TopBar title="auth-project" sub="sprint 01 · auth-refactor" />
+      {/* Status banner */}
+      <div style={{ margin:'10px 12px 0', padding:'10px 12px', background:'oklch(0.72 0.18 145 / 0.08)', border:`1px solid oklch(0.72 0.18 145 / 0.3)`, borderRadius:7 }}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:4 }}>
+          <span style={{ color: C.green, fontSize:10, fontWeight:600, fontFamily: mono }}>● RUNNING</span>
+          <span style={{ color: C.fg3, fontSize:9, fontFamily: mono }}>14m 32s</span>
+        </div>
+        <div style={{ color: C.fg, fontSize:12, marginBottom:2, fontFamily: mono }}>claude-cli</div>
+        <div style={{ color: C.fg3, fontSize:9 }}>auth-project · sprint 01 · task 3/7</div>
+      </div>
+
+      <Divider label="current step" />
+      <div style={{ padding:'2px 12px 8px' }}>
+        <div style={{ background: C.bg2, border:`1px solid ${C.border}`, borderRadius:6, padding:'8px 10px', fontSize:11, color: C.fg2, lineHeight:1.6 }}>
+          Extract JWT validation logic into{' '}
+          <span style={{ color: C.green, fontFamily: mono }}>auth/validators.js</span>
+          <div style={{ color: C.fg3, fontSize:9, marginTop:3 }}>acceptance: unit tests pass, no circular deps</div>
+        </div>
+      </div>
+
+      <Divider label="quick actions" />
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6, padding:'0 12px 8px' }}>
+        <Btn label="⏹ Stop" danger />
+        <Btn label="⇄ Switch" onPress={onSwitch} />
+        <Btn label="◎ View Plan" accent onPress={() => onNav('plan')} />
+        <Btn label="⇄ Handoff" onPress={() => onNav('handoff')} />
+      </div>
+
+      <Divider label="live output" />
+      <div style={{ flex:1, margin:'0 12px 10px', background: C.bg2, border:`1px solid ${C.border}`, borderRadius:6, padding:'8px 10px', overflow:'hidden' }}>
+        {LOG_LINES.slice(0, tailIdx + 1).map((l, i) => (
+          <div key={i} style={{ fontFamily: mono, fontSize:9.5, color: l.c, lineHeight:1.7 }}>{l.t}</div>
+        ))}
+        <div style={{ fontFamily: mono, fontSize:9.5, color: C.fg3 }}>▌</div>
+      </div>
+    </Screen>
+  );
+}
+
+// ── SCREEN: Live Logs ─────────────────────────────────────────────────────────
+const ALL_LOGS = [
+  { src:'evt', t:'09:14:01', text:'agent started: claude-cli',                 c: C.fg3  },
+  { src:'out', t:'09:14:03', text:'Reading project-brief.md…',                 c: C.fg2  },
+  { src:'out', t:'09:14:04', text:'Reading project-summary.md…',               c: C.fg2  },
+  { src:'out', t:'09:14:07', text:'Sprint 01 · task 3 — extract validators',   c: C.fg2  },
+  { src:'out', t:'09:14:12', text:'Opening auth/index.js',                     c: C.fg2  },
+  { src:'out', t:'09:14:18', text:'Found validateJWT(), validateScope()',       c: C.fg   },
+  { src:'out', t:'09:14:22', text:'Creating auth/validators.js',               c: C.green},
+  { src:'out', t:'09:14:35', text:'Writing 87 lines…',                         c: C.green},
+  { src:'out', t:'09:14:36', text:'Updating imports in index.js',              c: C.fg2  },
+  { src:'err', t:'09:14:41', text:'ESLint: no-unused-vars ×2',                 c: C.amber},
+  { src:'out', t:'09:14:45', text:'Fixing lint errors…',                       c: C.fg2  },
+  { src:'out', t:'09:14:52', text:'running npm test…',                         c: C.fg2  },
+  { src:'out', t:'09:14:58', text:'✓ 14 tests passed',                         c: C.green},
+  { src:'out', t:'09:15:01', text:'STEP COMPLETE',                             c: C.green},
+];
+
+function ScreenLogs() {
+  const [filter, setFilter] = useState('all');
+  const [visibleCount, setVisibleCount] = useState(8);
+  const FILTERS = ['all','out','err','evt'];
+  const shown = ALL_LOGS.filter(l => filter === 'all' || l.src === filter).slice(0, visibleCount);
+  useEffect(() => {
+    const t = setInterval(() => setVisibleCount(c => Math.min(c + 1, ALL_LOGS.length)), 1200);
+    return () => clearInterval(t);
+  }, []);
+  return (
+    <Screen>
+      <TopBar title="Live Logs" right="↓ tail" />
+      <div style={{ display:'flex', gap:6, padding:'7px 12px', borderBottom:`1px solid ${C.border}`, flexShrink:0 }}>
+        {FILTERS.map(f => (
+          <button key={f} onClick={() => setFilter(f)} style={{
+            padding:'3px 9px', borderRadius:3, cursor:'pointer',
+            background: filter===f ? C.greenDim : C.bg3,
+            border: `1px solid ${filter===f ? C.green : C.border2}`,
+            color: filter===f ? C.green : C.fg3,
+            fontSize:9, fontFamily: mono,
+          }}>{f}</button>
+        ))}
+      </div>
+      <Scroll style={{ padding:'8px 12px' }}>
+        <div style={{ background: C.bg2, border:`1px solid ${C.border}`, borderRadius:6, padding:'8px 10px' }}>
+          {shown.map((l, i) => (
+            <div key={i} style={{ display:'flex', gap:8, fontFamily: mono, fontSize:9, lineHeight:1.75, color: l.c }}>
+              <span style={{ color: C.fg3, flexShrink:0 }}>{l.t}</span>
+              <span style={{ color: C.fg3, flexShrink:0 }}>[{l.src}]</span>
+              <span>{l.text}</span>
+            </div>
+          ))}
+          {visibleCount < ALL_LOGS.length && (
+            <div style={{ fontFamily: mono, fontSize:9, color: C.fg3 }}>▌</div>
+          )}
+        </div>
+      </Scroll>
+    </Screen>
+  );
+}
+
+// ── SCREEN: Plan ───────────────────────────────────────────────────────────────
+const PLAN_STEPS = [
+  { n:1, label:'Audit existing auth structure',           done:true  },
+  { n:2, label:'Define validator interface contract',     done:true  },
+  { n:3, label:'Extract JWT validators',                  active:true},
+  { n:4, label:'Extract session middleware',              done:false },
+  { n:5, label:'Write unit tests for validators',         done:false },
+  { n:6, label:'Update route handlers',                   done:false },
+  { n:7, label:'Integration test + cleanup',              done:false },
+];
+
+function ScreenPlan({ onPlanChat }) {
+  const [expanded, setExpanded] = useState(3);
+  const CRITERIA = {
+    3: 'auth/validators.js exists, all validator functions moved, tests pass',
+    4: 'session middleware in auth/session.js, no circular deps',
+    5: 'jest coverage ≥ 80% for validators module',
+    6: 'no direct auth function calls in route files',
+    7: 'npm test exits 0, no lint errors',
+  };
+  return (
+    <Screen>
+      <TopBar title="Sprint 01" sub="auth-refactor" right="edit" />
+      <div style={{ padding:'7px 14px', borderBottom:`1px solid ${C.border}`, flexShrink:0 }}>
+        <div style={{ fontSize:9, color: C.fg3, marginBottom:4, fontFamily: mono }}>sprint goal · auth module refactor</div>
+        <div style={{ display:'flex', gap:6, alignItems:'center' }}>
+          <div style={{ flex:1, height:3, background: C.border, borderRadius:2 }}>
+            <div style={{ width:'42%', height:'100%', background: C.green, borderRadius:2 }}></div>
+          </div>
+          <span style={{ fontSize:9, color: C.green, fontFamily: mono }}>3/7</span>
+        </div>
+      </div>
+      <Scroll>
+        {PLAN_STEPS.map(s => (
+          <div key={s.n}>
+            <button onClick={() => setExpanded(expanded === s.n ? null : s.n)} style={{
+              width:'100%', display:'flex', gap:8, alignItems:'flex-start',
+              padding:'8px 14px', borderBottom:`1px solid ${C.bg3}`,
+              background: s.active ? 'oklch(0.72 0.18 145 / 0.05)' : 'transparent',
+              border:'none', borderBottom:`1px solid ${C.bg3}`, cursor:'pointer', textAlign:'left',
+            }}>
+              <div style={{
+                width:17, height:17, borderRadius:'50%', flexShrink:0,
+                border:`1px solid ${s.done ? C.green : s.active ? C.green : C.border2}`,
+                background: s.done ? C.green : 'transparent',
+                display:'flex', alignItems:'center', justifyContent:'center',
+                fontSize:8, color: s.done ? C.bg : s.active ? C.green : C.fg3, marginTop:1,
+              }}>{s.done ? '✓' : s.n}</div>
+              <div style={{ flex:1 }}>
+                <div style={{ fontSize:11, color: s.done ? C.fg3 : s.active ? C.fg : C.fg2, textDecoration: s.done ? 'line-through' : 'none', lineHeight:1.4 }}>{s.label}</div>
+                {s.active && <div style={{ fontSize:9, color: C.green, fontFamily: mono, marginTop:2 }}>in progress ›</div>}
+              </div>
+            </button>
+            {expanded === s.n && CRITERIA[s.n] && (
+              <div style={{ padding:'6px 14px 8px 38px', background: C.bg2, borderBottom:`1px solid ${C.border}` }}>
+                <div style={{ fontSize:9, color: C.fg3, fontFamily: mono, marginBottom:2 }}>acceptance</div>
+                <div style={{ fontSize:10, color: C.fg2, lineHeight:1.5 }}>{CRITERIA[s.n]}</div>
+              </div>
+            )}
+          </div>
+        ))}
+        <div style={{ padding:'12px 12px 8px' }}>
+          <div style={{ fontSize:9, color: C.fg3, marginBottom:6, fontFamily: mono }}>constraints</div>
+          {['Do not modify auth/legacy.js', 'Use ESM imports only', 'Test command: npm test'].map(c => (
+            <div key={c} style={{ fontSize:10, color: C.fg2, padding:'3px 0', paddingLeft:12, position:'relative' }}>
+              <span style={{ position:'absolute', left:0, color: C.border2 }}>·</span>{c}
+            </div>
+          ))}
+        </div>
+      </Scroll>
+      <div style={{ padding:'8px 12px', display:'flex', gap:6, borderTop:`1px solid ${C.border}`, flexShrink:0 }}>
+        <div style={{ flex:1 }}><Btn label="✎ Edit" full /></div>
+        <div style={{ flex:1 }}><Btn label="✓ Close Sprint" accent full /></div>
+      </div>
+    </Screen>
+  );
+}
+
+// ── SCREEN: Handoff ───────────────────────────────────────────────────────────
+function ScreenHandoff() {
+  const [idx, setIdx] = useState(0);
+  const HANDOFFS = [
+    {
+      n: 1, agent:'codex', reason:'rate_limit', time:'09:01:14',
+      task:'step 2 — define validator interface',
+      completed:['Drafted interface in auth/validators.js'],
+      inProgress:['Error handling approach TBD'],
+      files:['auth/validators.js: +87 lines (unstaged)'],
+      blockers:['Unclear whether to throw or return null on invalid token'],
+      lastOutput:['> Rate limit: 429 Too Many Requests', '> Cooldown required: ~60s'],
+      next:'Commit draft interface, begin extraction of validateJWT()',
+    },
+    {
+      n: 2, agent:'claude', reason:'manual', time:'09:28:44',
+      task:'step 3 — extract JWT validators',
+      completed:['validateJWT() extracted','validateScope() extracted'],
+      inProgress:['Lint errors in validators.js (×2 no-unused-vars)'],
+      files:['auth/validators.js: complete','auth/index.js: updated imports'],
+      blockers:['none'],
+      lastOutput:['> ESLint: no-unused-vars ×2','> Fixing…','BLOCKED: manual override'],
+      next:'Fix lint errors, run npm test, signal STEP COMPLETE',
+    },
+  ];
+  const h = HANDOFFS[idx];
+  return (
+    <Screen>
+      <TopBar title="Handoff" sub={`switch ${h.n} of ${HANDOFFS.length}`} />
+      <Scroll>
+        {/* Reason banner */}
+        <div style={{ margin:'8px 12px 0', padding:'8px 10px', background: C.amberDim, border:`1px solid ${C.amber}33`, borderRadius:6 }}>
+          <div style={{ fontSize:8, color: C.amber, fontFamily: mono, textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:2 }}>Switch reason</div>
+          <div style={{ fontSize:11, color: C.fg }}>{h.reason} — {h.agent} · {h.time}</div>
+        </div>
+        {/* Fields */}
+        {[
+          { k:'task', v: h.task },
+        ].map(r => (
+          <div key={r.k} style={{ display:'flex', gap:8, padding:'6px 12px', borderBottom:`1px solid ${C.bg3}` }}>
+            <span style={{ color: C.fg3, fontSize:9, fontFamily: mono, minWidth:70 }}>{r.k}</span>
+            <span style={{ color: C.fg2, fontSize:10, flex:1, lineHeight:1.4 }}>{r.v}</span>
+          </div>
+        ))}
+        {[
+          { k:'completed',   v: h.completed },
+          { k:'in progress', v: h.inProgress },
+          { k:'files',       v: h.files },
+          { k:'blockers',    v: h.blockers },
+        ].map(r => (
+          <div key={r.k} style={{ padding:'6px 12px', borderBottom:`1px solid ${C.bg3}` }}>
+            <div style={{ color: C.fg3, fontSize:9, fontFamily: mono, marginBottom:3 }}>{r.k}</div>
+            {r.v.map((item, i) => (
+              <div key={i} style={{ color: C.fg2, fontSize:10, paddingLeft:10, position:'relative', lineHeight:1.5 }}>
+                <span style={{ position:'absolute', left:0, color: C.border2 }}>·</span>{item}
+              </div>
+            ))}
+          </div>
+        ))}
+        {/* Last output */}
+        <div style={{ padding:'6px 12px', borderBottom:`1px solid ${C.bg3}` }}>
+          <div style={{ color: C.fg3, fontSize:9, fontFamily: mono, marginBottom:4 }}>last output</div>
+          <div style={{ background: C.bg2, border:`1px solid ${C.border}`, borderRadius:5, padding:'6px 8px' }}>
+            {h.lastOutput.map((l, i) => (
+              <div key={i} style={{ fontFamily: mono, fontSize:9, color: C.fg3, lineHeight:1.7 }}>{l}</div>
+            ))}
+          </div>
+        </div>
+        {/* Next step */}
+        <div style={{ padding:'8px 12px 12px' }}>
+          <div style={{ color: C.fg3, fontSize:9, fontFamily: mono, marginBottom:4 }}>next step</div>
+          <div style={{ color: C.fg, fontSize:11, lineHeight:1.5, padding:'8px 10px', background: C.bg2, border:`1px solid ${C.border}`, borderRadius:6 }}>{h.next}</div>
+        </div>
+      </Scroll>
+      {/* Prev / Next */}
+      <div style={{ display:'flex', gap:6, padding:'8px 12px', borderTop:`1px solid ${C.border}`, flexShrink:0 }}>
+        <div style={{ flex:1 }}><Btn label="← Prev" full onPress={() => setIdx(Math.max(0, idx-1))} /></div>
+        <div style={{ flex:1 }}><Btn label="Next →" full onPress={() => setIdx(Math.min(HANDOFFS.length-1, idx+1))} /></div>
+      </div>
+    </Screen>
+  );
+}
+
+// ── SCREEN: Switch Agent ───────────────────────────────────────────────────────
+function ScreenSwitch({ onBack }) {
+  const [selected, setSelected] = useState(null);
+  const [reason, setReason] = useState('');
+  const [switched, setSwitched] = useState(false);
+  const AGENTS = [
+    { id:'codex-cli',  note:'last used 14m ago · rested', ok:true  },
+    { id:'claude-cli', note:'current agent · running',     ok:false },
+  ];
+  const doSwitch = () => { setSwitched(true); setTimeout(onBack, 1200); };
+  return (
+    <Screen>
+      <TopBar title="Switch Agent" onBack={onBack} />
+      {switched ? (
+        <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column', gap:12 }}>
+          <div style={{ fontSize:28, color: C.green }}>⇄</div>
+          <div style={{ fontFamily: mono, fontSize:12, color: C.green }}>switching…</div>
+          <div style={{ fontSize:10, color: C.fg3 }}>writing handoff</div>
+        </div>
+      ) : (
+        <Scroll style={{ padding:'8px 12px' }}>
+          {/* Current */}
+          <div style={{ padding:'8px 10px', borderRadius:6, background: C.bg2, border:`1px solid ${C.border}`, marginBottom:10 }}>
+            <div style={{ fontSize:9, color: C.fg3, fontFamily: mono, marginBottom:3 }}>current agent</div>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+              <span style={{ color: C.green, fontWeight:600, fontFamily: mono, fontSize:12 }}>claude-cli</span>
+              <Pill label="running" color="green" />
+            </div>
+            <div style={{ fontSize:9, color: C.fg3, marginTop:2 }}>14m 32s · step 3/7</div>
+          </div>
+
+          <Divider label="switch to" />
+          {AGENTS.map(a => (
+            <button key={a.id} onClick={() => a.ok && setSelected(a.id)} style={{
+              width:'100%', textAlign:'left',
+              padding:'9px 10px', borderRadius:6,
+              background: selected===a.id ? C.greenDim : a.ok ? C.bg2 : C.bg2,
+              border: `1px solid ${selected===a.id ? C.green : a.ok ? C.border2 : C.border}`,
+              marginBottom:6, opacity: a.ok ? 1 : 0.4, cursor: a.ok ? 'pointer' : 'default',
+            }}>
+              <div style={{ display:'flex', justifyContent:'space-between', marginBottom:2 }}>
+                <span style={{ color: selected===a.id ? C.green : a.ok ? C.fg : C.fg3, fontFamily: mono, fontSize:11 }}>{a.id}</span>
+                {a.ok && <span style={{ fontSize:9, color: C.green, fontFamily: mono }}>{selected===a.id ? '✓ selected' : 'select'}</span>}
+              </div>
+              <div style={{ fontSize:9, color: C.fg3 }}>{a.note}</div>
+            </button>
+          ))}
+
+          <Divider label="reason (optional)" />
+          <input
+            value={reason}
+            onChange={e => setReason(e.target.value)}
+            placeholder="manual override…"
+            style={{
+              width:'100%', padding:'8px 10px',
+              background: C.bg2, border:`1px solid ${C.border2}`,
+              borderRadius:5, color: C.fg2, fontSize:10, fontFamily: mono,
+              outline:'none', marginTop:4,
+            }}
+          />
+
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6, marginTop:12 }}>
+            <Btn label="Cancel" onPress={onBack} />
+            <Btn label="⇄ Switch Now" accent onPress={doSwitch} />
+          </div>
+        </Scroll>
+      )}
+    </Screen>
+  );
+}
+
+// ── SCREEN: Chat (persistent Planner conversation) ────────────────────────────
+const CHAT_SCRIPT = [
+  { from:'dorch', text:"Sprint 01 · auth-project\n\nRefactoring the auth module — let me ask a few things:\n1. Stack confirmed Node/Express?\n2. Done = tests pass, or specific behaviour?\n3. Files I must not touch?" },
+  { from:'user',  text:"Yes Node. Done = tests pass.\nDon't touch auth/legacy.js." },
+  { from:'dorch', text:"Got it. Split into separate files (validators, middleware, session) or keep consolidated?" },
+  { from:'user',  text:"Separate files." },
+  { from:'dorch', text:"✓ Writing sprint plan — 7 tasks.", done:true },
+];
+
+function ScreenPlannerChat({ onDone }) {
+  const [messages, setMessages] = useState([CHAT_SCRIPT[0]]);
+  const [input, setInput] = useState('');
+  const [scriptIdx, setScriptIdx] = useState(0);
+  const [done, setDone] = useState(false);
+  const bottomRef = useRef(null);
+
+  useEffect(() => {
+    if (bottomRef.current) {
+      bottomRef.current.scrollTop = bottomRef.current.scrollHeight;
+    }
+  }, [messages]);
+
+  const send = () => {
+    if (!input.trim()) return;
+    const userMsg = { from:'user', text: input };
+    const next = CHAT_SCRIPT[scriptIdx + 1];
+    const nextBot = CHAT_SCRIPT[scriptIdx + 2];
+    setMessages(m => [...m, userMsg]);
+    setInput('');
+    setScriptIdx(i => i + 1);
+    if (next && next.from === 'user' && nextBot) {
+      setTimeout(() => {
+        setMessages(m => [...m, nextBot]);
+        setScriptIdx(i => i + 1);
+        if (nextBot.done) setDone(true);
+      }, 800);
+    } else if (next && next.done) {
+      setDone(true);
+    }
+  };
+
+  const skip = () => {
+    setMessages(m => [...m, { from:'dorch', text:'✓ Skipping questions — writing plan from task description.' }]);
+    setTimeout(onDone, 800);
+  };
+
+  return (
+    <Screen>
+      <TopBar title="Chat" sub="auth-project · sprint 01" />
+      <div ref={bottomRef} style={{ flex:1, overflowY:'auto', padding:'10px 12px', display:'flex', flexDirection:'column', gap:8 }}>
+        {messages.map((m, i) => (
+          <div key={i} style={{ display:'flex', justifyContent: m.from==='user' ? 'flex-end' : 'flex-start' }}>
+            <div style={{
+              maxWidth:'78%', padding:'8px 11px', borderRadius: m.from==='user' ? '12px 12px 3px 12px' : '12px 12px 12px 3px',
+              background: m.from==='user' ? C.greenDim : C.bg2,
+              border: `1px solid ${m.from==='user' ? C.green+'44' : C.border}`,
+              fontSize:11, color: m.from==='user' ? C.fg : C.fg2, lineHeight:1.6,
+              whiteSpace:'pre-wrap',
+            }}>
+              {m.from==='dorch' && <div style={{ fontSize:8, color: C.green, fontFamily: mono, marginBottom:3 }}>dorch</div>}
+              {m.text}
+            </div>
+          </div>
+        ))}
+        {done && (
+          <div style={{ textAlign:'center', padding:'8px 0' }}>
+            <Btn label="Review Plan →" accent onPress={onDone} />
+          </div>
+        )}
+      </div>
+      {!done && (
+        <div style={{ padding:'8px 12px', borderTop:`1px solid ${C.border}`, display:'flex', flexDirection:'column', gap:6, flexShrink:0 }}>
+          <div style={{ display:'flex', gap:6 }}>
+            <input
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={e => e.key==='Enter' && send()}
+              placeholder="Reply…"
+              style={{
+                flex:1, padding:'8px 10px',
+                background: C.bg2, border:`1px solid ${C.border2}`,
+                borderRadius:20, color: C.fg, fontSize:11,
+                outline:'none', fontFamily:"'Inter', sans-serif",
+              }}
+            />
+            <button onClick={send} style={{
+              width:34, height:34, borderRadius:'50%', border:'none',
+              background: C.green, color: C.bg, fontSize:14, cursor:'pointer', flexShrink:0,
+            }}>›</button>
+          </div>
+          <button onClick={skip} style={{ fontSize:9, color: C.fg3, background:'none', border:'none', cursor:'pointer', fontFamily: mono, textDecoration:'underline' }}>
+            Skip — write plan now
+          </button>
+        </div>
+      )}
+    </Screen>
+  );
+}
+
+// ── SCREEN: Projects ─────────────────────────────────────────────────────────
+const PROJECTS_DATA = [
+  { id:'auth-project', name:'auth-project',  sprint:'sprint 01', status:'ACTIVE',  tasks:'task 3/7' },
+  { id:'critter-api',  name:'critter-api',   sprint:'sprint 02', status:'ACTIVE',  tasks:'task 1/5' },
+  { id:'mobile-app',   name:'mobile-app',    sprint:'sprint 03', status:'REVIEW',  tasks:'complete' },
+];
+
+function ScreenProjects({ onSelect, onCreate }) {
+  return (
+    <Screen>
+      <TopBar title="Dorch" right="v0.1" />
+      <Scroll style={{ padding:'6px 0' }}>
+        <Divider label="projects" />
+        {PROJECTS_DATA.map(p => (
+          <button key={p.id} onClick={() => onSelect(p.id)} style={{
+            width:'100%', textAlign:'left',
+            padding:'10px 14px',
+            background:'none', border:'none', borderBottom:`1px solid ${C.bg3}`,
+            cursor:'pointer',
+          }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:3 }}>
+              <span style={{ color: C.fg, fontSize:12, fontFamily: mono }}>{p.name}</span>
+              <Pill label={p.status} color={p.status==='REVIEW' ? 'amber' : 'green'} />
+            </div>
+            <div style={{ display:'flex', justifyContent:'space-between' }}>
+              <span style={{ color: C.fg3, fontSize:9, fontFamily: mono }}>{p.sprint}</span>
+              <span style={{ color: C.fg3, fontSize:9, fontFamily: mono }}>{p.tasks}</span>
+            </div>
+          </button>
+        ))}
+        <div style={{ padding:'12px 12px 0' }}>
+          <Btn label="+ New Project" accent full onPress={onCreate} />
+        </div>
+      </Scroll>
+    </Screen>
+  );
+}
+
+// ── SCREEN: New Project ───────────────────────────────────────────────────────
+function ScreenNewProject({ onBack, onCreate }) {
+  const [name, setName] = useState('');
+  const [repoUrl, setRepoUrl] = useState('');
+  return (
+    <Screen>
+      <TopBar title="New Project" onBack={onBack} />
+      <div style={{ flex:1, padding:'16px 14px', display:'flex', flexDirection:'column', gap:12 }}>
+        <div style={{ fontSize:11, color: C.fg2, lineHeight:1.6 }}>
+          Give the project a name. Optionally provide a repo URL to clone — leave blank to start fresh with a new repo.
+        </div>
+        <div>
+          <div style={{ fontSize:9, color: C.fg3, fontFamily: mono, marginBottom:5 }}>project name</div>
+          <input
+            value={name}
+            onChange={e => setName(e.target.value)}
+            placeholder="e.g. auth-service"
+            style={{ width:'100%', padding:'8px 10px', background: C.bg2, border:`1px solid ${C.border2}`, borderRadius:5, color: C.fg, fontSize:11, outline:'none', fontFamily:"'Inter', sans-serif" }}
+          />
+        </div>
+        <div>
+          <div style={{ fontSize:9, color: C.fg3, fontFamily: mono, marginBottom:5 }}>
+            repo url <span style={{ opacity:0.5 }}>(optional)</span>
+          </div>
+          <input
+            value={repoUrl}
+            onChange={e => setRepoUrl(e.target.value)}
+            placeholder="https://github.com/org/repo"
+            style={{ width:'100%', padding:'8px 10px', background: C.bg2, border:`1px solid ${C.border2}`, borderRadius:5, color: C.fg, fontSize:11, outline:'none', fontFamily:"'Inter', sans-serif" }}
+          />
+          <div style={{ fontSize:9, color: C.fg3, marginTop:4 }}>leave blank → git init + push upstream</div>
+        </div>
+        <Btn label="Create Project →" accent full onPress={() => name.trim() && onCreate(name)} />
+      </div>
+    </Screen>
+  );
+}
+
+// ── ROOT APP ──────────────────────────────────────────────────────────────────
+const SCREEN_NOTES = {
+  projects:   { label:'01 · Projects',      notes:['Project list with status + sprint', 'Tap project → opens in Chat', '"+ New Project" → creation flow'] },
+  newProject: { label:'02 · New Project',   notes:['Name + optional repo URL', 'Blank URL → git init + push upstream', 'Creates folder, workspace, memory files'] },
+  chat:       { label:'03 · Chat',          notes:['Persistent Planner chat per sprint', 'Define goal, review plan, redirect mid-sprint', 'Context: project-brief + sprint status + latest handoff'] },
+  dash:       { label:'04 · Status',        notes:['Project + sprint N in header', 'Agent name, runtime, current task', 'Quick actions: stop, switch, plan, handoff'] },
+  logs:       { label:'05 · Live Logs',     notes:['Filter by channel: all/out/err/evt', 'Auto-tails; colour-coded by type', 'project-brief + project-summary in context'] },
+  plan:       { label:'06 · Sprint Plan',   notes:['Sprint goal + task list', 'Tap task to expand acceptance criteria', 'Close Sprint button when review-ready'] },
+  handoff:    { label:'07 · Handoff',       notes:['Structured handoff schema', 'Prev/Next through sprint handoff history', 'Reason banner colour-coded'] },
+  switch:     { label:'08 · Switch Agent',  notes:['Select target agent', 'Optional reason field', 'Animated switching state'] },
+};
+
+function App() {
+  const [view, setView] = useState('projects'); // 'projects' | 'newProject' | 'project'
+  const [navScreen, setNavScreen] = useState('chat');
+
+  const selectProject = () => { setView('project'); setNavScreen('chat'); };
+  const createProject = () => { setView('project'); setNavScreen('chat'); };
+  const goBack        = () => setView('projects');
+  const goNav         = (s) => setNavScreen(s);
+  const goSwitch      = () => setNavScreen('switch');
+
+  const currentNoteKey = view === 'projects' ? 'projects'
+    : view === 'newProject' ? 'newProject'
+    : navScreen;
+  const notes = SCREEN_NOTES[currentNoteKey];
+
+  const inner = view === 'projects' ? (
+    <ScreenProjects onSelect={selectProject} onCreate={() => setView('newProject')} />
+  ) : view === 'newProject' ? (
+    <ScreenNewProject onBack={goBack} onCreate={createProject} />
+  ) : (
+    <Screen>
+      {navScreen === 'chat'    && <ScreenPlannerChat onDone={() => goNav('plan')} />}
+      {navScreen === 'dash'    && <ScreenDash onNav={goNav} onSwitch={goSwitch} />}
+      {navScreen === 'logs'    && <ScreenLogs />}
+      {navScreen === 'plan'    && <ScreenPlan onPlanChat={() => goNav('chat')} />}
+      {navScreen === 'handoff' && <ScreenHandoff />}
+      {navScreen === 'switch'  && <ScreenSwitch onBack={() => setNavScreen('dash')} />}
+      {navScreen !== 'switch'  && <BottomNav active={navScreen} onNav={goNav} />}
+    </Screen>
+  );
+
+  return (
+    <div className="prototype-wrap">
+      <div className="frame-col">
+        <AndroidDevice width={320} dark={true}>
+          {inner}
+        </AndroidDevice>
+      </div>
+      <div className="notes-col">
+        {notes && <>
+          <div className="screen-badge">{notes.label}</div>
+          <div className="note-title">screen notes</div>
+          {notes.notes.map((n, i) => (
+            <div className="note-item" key={i}>
+              <span>→</span><span>{n}</span>
+            </div>
+          ))}
+        </>}
+        <div style={{ marginTop:28 }}>
+          <div className="note-title">navigate to</div>
+          {Object.entries(SCREEN_NOTES).map(([k, v]) => (
+            <button key={k} onClick={() => {
+              if (k === 'projects')   { setView('projects'); }
+              else if (k === 'newProject') { setView('newProject'); }
+              else { setView('project'); setNavScreen(k); }
+            }} style={{
+              display:'block', width:'100%', textAlign:'left',
+              padding:'5px 8px', marginBottom:4, borderRadius:4,
+              background:'none', border:'none', cursor:'pointer',
+              fontFamily: mono, fontSize:9,
+              color: currentNoteKey === k ? 'oklch(0.72 0.18 145)' : '#555957',
+            }}>{v.label}</button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('app')).render(<App />);
+</script>
+</body>
+</html>
