@@ -7,6 +7,7 @@ import { errorHandler } from './middleware/error-handler.js';
 import { requireSession } from './middleware/require-session.js';
 import { authRoutes } from './routes/auth-routes.js';
 import { projectRoutes } from './routes/project-routes.js';
+import { uiRoutes } from './routes/ui-routes.js';
 
 export function createServer({ bus }) {
   const app = express();
@@ -25,6 +26,7 @@ export function createServer({ bus }) {
     }
   }));
 
+  app.use(uiRoutes());
   app.use('/auth', authRoutes());
   app.use('/projects', requireSession, projectRoutes());
   app.use(express.static(path.join(config.rootDir, 'server', 'ui', 'dist')));
