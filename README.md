@@ -1,5 +1,9 @@
 # Dorch
 
+**License Notice:**
+
+Dorch is open source for personal, educational, and non-commercial use only. Commercial use, resale, or distribution for profit is **not permitted**. See the [LICENSE](LICENSE) file for details.
+
 Autonomous AI coding orchestrator. Runs Codex CLI and Claude CLI as interchangeable workers on a shared sprint. Manages the plan, memory, handoffs, and agent switching so work continues uninterrupted — even across rate limits, timeouts, or crashes.
 
 ## How it works
@@ -115,3 +119,9 @@ See `docs/07-cli-adapters.md` for the full interface.
 | `docs/08-mvp-build-order.md` | Step-by-step build sequence |
 | `docs/09-decisions.md` | All resolved design decisions |
 | `docs/12-project-sprint-model.md` | Project → Sprint → Task hierarchy |
+
+---
+
+**License:**
+
+This project is licensed for non-commercial use only. See the [LICENSE](LICENSE) file for full terms.
