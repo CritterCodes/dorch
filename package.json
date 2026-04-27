@@ -8,6 +8,9 @@
     "node": ">=20"
   },
   "scripts": {
+    "dev": "node dorch.js",
+    "mongo:up": "docker compose up -d mongo",
+    "mongo:down": "docker compose down",
     "start": "node dorch.js",
     "test": "node --test"
   },

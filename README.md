@@ -37,10 +37,16 @@ git clone <your project> data/workspace/target-repo
 ## Start
 
 ```bash
-node dorch.js
+npm run mongo:up
+npm start
 ```
 
 Open `http://localhost:3000` on your phone (or desktop). Submit a task. Approve the plan. Watch it run.
+
+For local development, `.env` must define `DORCH_SESSION_SECRET` and
+`DORCH_SESSION_PASSWORD`. The server uses MongoDB at
+`mongodb://localhost:27017/dorch`; `npm run mongo:up` starts it with Docker
+Compose.
 
 For production:
 
