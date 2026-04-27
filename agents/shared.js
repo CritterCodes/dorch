@@ -1,5 +1,9 @@
 import { config } from '../config.js';
 
+export function commandName(base) {
+  return process.platform === 'win32' ? `${base}.cmd` : base;
+}
+
 export async function stopProcess(proc, killTimeoutMs = config.killTimeoutMs) {
   return new Promise((resolve) => {
     if (!proc || proc.exitCode !== null || proc.killed) {

@@ -14,9 +14,19 @@ Autonomous AI coding orchestrator. Runs Codex CLI and Claude CLI as interchangea
 ## Prerequisites
 
 - Node.js 20+
-- `codex-cli` installed and in PATH — `npm install -g @openai/codex`
-- `claude-cli` installed and in PATH — `npm install -g @anthropic-ai/claude-code`
+- `codex` installed and in PATH — `npm install -g @openai/codex`
+- `claude` installed and in PATH — `npm install -g @anthropic-ai/claude-code`
 - A git repo cloned into `data/workspace/target-repo/`
+
+For local use, prefer each CLI's login flow instead of API keys:
+
+```bash
+codex login
+claude auth login
+```
+
+`OPENAI_API_KEY` and `ANTHROPIC_API_KEY` are optional overrides for API-key
+auth. Leave them blank if you expect the CLIs to use stored account login.
 
 ## Setup
 
@@ -25,7 +35,8 @@ git clone <this repo> dorch
 cd dorch
 npm install
 cp .env.example .env
-# Edit .env — add OPENAI_API_KEY and ANTHROPIC_API_KEY at minimum
+# Edit .env — set DORCH_SESSION_SECRET and DORCH_SESSION_PASSWORD.
+# API keys are optional when the CLIs are already logged in.
 ```
 
 Clone your target repo into the workspace:
