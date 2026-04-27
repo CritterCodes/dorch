@@ -16,7 +16,8 @@ import {
   RefreshCw,
   Send,
   Square,
-  Shuffle
+  Shuffle,
+  Terminal
 } from 'lucide-react';
 import './styles.css';
 
@@ -332,12 +333,14 @@ function ProjectDetail({ slug, onBack }) {
           <ChatTab messages={messages} chat={chat} setChat={setChat} sendMessage={sendMessage} busy={busy} />
         )}
         {active === 'plan' && <MarkdownTab title="Sprint Plan" text={status?.currentSprint} />}
+        {active === 'logs' && <LogsTab slug={slug} />}
         {active === 'handoff' && <MarkdownTab title="Latest Handoff" text={status?.latestHandoff} />}
       </main>
 
       <nav className="bottom-nav">
         <TabButton active={active === 'status'} onClick={() => setActive('status')} icon={<Activity size={18} />} label="Status" />
         <TabButton active={active === 'chat'} onClick={() => setActive('chat')} icon={<MessageSquare size={18} />} label="Chat" />
+        <TabButton active={active === 'logs'} onClick={() => setActive('logs')} icon={<Terminal size={18} />} label="Logs" />
         <TabButton active={active === 'plan'} onClick={() => setActive('plan')} icon={<ClipboardList size={18} />} label="Plan" />
         <TabButton active={active === 'handoff'} onClick={() => setActive('handoff')} icon={<FileText size={18} />} label="Handoff" />
       </nav>
@@ -396,6 +399,60 @@ function StatusTab({ latestSprint, status, goal, setGoal, createSprint, approveP
   );
 }
 
+function LogsTab({ slug }) {
+  const [lines, setLines] = useState([]);
+  const [connected, setConnected] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    let alive = true;
+    fetch(`/projects/${slug}/run-log`, { credentials: 'include' })
+      .then((response) => {
+        if (!response.ok) throw new Error(response.statusText);
+        return response.text();
+      })
+      .then((text) => {
+        if (!alive) return;
+        setLines(text.split(/\r?\n/).filter(Boolean).map((line) => ({ source: 'evt', text: line })));
+      })
+      .catch((err) => {
+        if (alive) setError(err.message);
+      });
+
+    const stream = new EventSource(`/projects/${slug}/logs/stream`, { withCredentials: true });
+    stream.onopen = () => setConnected(true);
+    stream.onerror = () => setConnected(false);
+    stream.onmessage = (event) => {
+      const item = JSON.parse(event.data);
+      setLines((current) => [...current.slice(-250), item]);
+    };
+
+    return () => {
+      alive = false;
+      stream.close();
+    };
+  }, [slug]);
+
+  return (
+    <section className="section-block flush full-height logs-panel">
+      <div className="section-title">
+        <span>Live Logs</span>
+        <Pill tone={connected ? 'green' : 'amber'}>{connected ? 'streaming' : 'idle'}</Pill>
+      </div>
+      {error ? <div className="error">{error}</div> : null}
+      <div className="log-lines">
+        {lines.length === 0 ? <div className="empty">No log lines yet.</div> : null}
+        {lines.map((line, index) => (
+          <div className="log-line" key={`${index}-${line.ts || ''}`}>
+            <span>[{line.source || 'evt'}]</span>
+            <p>{line.text}</p>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function ChatTab({ messages, chat, setChat, sendMessage, busy }) {
   return (
     <div className="chat-tab">
@@ -435,8 +492,22 @@ function TabButton({ active, onClick, icon, label }) {
 }
 
 function App() {
-  const [authenticated, setAuthenticated] = useState(false);
+  const [authenticated, setAuthenticated] = useState(null);
   const [selectedProject, setSelectedProject] = useState(null);
+
+  useEffect(() => {
+    api('/auth/session')
+      .then((session) => setAuthenticated(session.authenticated))
+      .catch(() => setAuthenticated(false));
+  }, []);
+
+  if (authenticated === null) {
+    return (
+      <main className="auth-screen">
+        <div className="muted-row"><Loader2 className="spin" size={16} /> Checking session</div>
+      </main>
+    );
+  }
 
   if (!authenticated) return <Login onLogin={() => setAuthenticated(true)} />;
   if (!selectedProject) {

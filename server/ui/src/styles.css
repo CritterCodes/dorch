@@ -408,7 +408,7 @@ input:focus, textarea:focus {
 
 .bottom-nav {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   border-top: 1px solid var(--border);
   background: var(--bg2);
 }
@@ -487,6 +487,41 @@ input:focus, textarea:focus {
   color: var(--green);
   background: var(--green-dim);
   border-radius: 50%;
+}
+
+.logs-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.log-lines {
+  flex: 1;
+  overflow: auto;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px;
+}
+
+.log-line {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px;
+  color: var(--fg2);
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 10px;
+  line-height: 1.6;
+  padding: 2px 0;
+}
+
+.log-line span {
+  color: var(--fg3);
+}
+
+.log-line p {
+  color: inherit;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
 }
 
 @media (min-width: 720px) {

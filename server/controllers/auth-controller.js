@@ -9,6 +9,10 @@ export function login(req, res) {
   res.json({ ok: true });
 }
 
+export function session(req, res) {
+  res.json({ authenticated: Boolean(req.session?.authenticated) });
+}
+
 export function logout(req, res) {
   req.session.destroy(() => res.json({ ok: true }));
 }
