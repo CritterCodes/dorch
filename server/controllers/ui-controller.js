@@ -1,3 +1,7 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import { config } from '../../config.js';
+
 export function favicon(_req, res) {
   res.status(204).end();
 }
@@ -7,6 +11,12 @@ export function chromeDevToolsProbe(_req, res) {
 }
 
 export function appShell(_req, res) {
+  const indexPath = path.join(config.rootDir, 'server', 'ui', 'dist', 'index.html');
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+    return;
+  }
+
   res.type('html').send(`<!doctype html>
 <html lang="en">
   <head>

@@ -11,6 +11,8 @@
     "dev": "node dorch.js",
     "mongo:up": "docker compose up -d mongo",
     "mongo:down": "docker compose down",
+    "ui:install": "npm install --prefix server/ui",
+    "ui:build": "npm run build --prefix server/ui",
     "start": "node dorch.js",
     "test": "node --test"
   },
