@@ -18,6 +18,9 @@ export class SwitchController {
     bus.on('sprint:approved', ({ slug }) => {
       if (slug === this.slug) this.start();
     });
+    bus.on('agent:resume', ({ slug }) => {
+      if (slug === this.slug) this.resume();
+    });
     bus.on('trigger', (trigger) => {
       if (trigger.slug === this.slug) this.handleTrigger(trigger);
     });
@@ -38,6 +41,16 @@ export class SwitchController {
   async stop() {
     await this.executor.stopAgent();
     this.state = 'IDLE';
+  }
+
+  resume() {
+    if (this.state === 'RUNNING') return;
+    this.state = 'IDLE';
+    this.start();
+  }
+
+  markUncleanShutdown() {
+    this.state = 'AWAITING_USER_INPUT';
   }
 
   nextAgent() {

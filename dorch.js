@@ -2,7 +2,7 @@ import { config, validateConfig } from './config.js';
 import bus from './dorch-bus.js';
 import { connectDb } from './db/index.js';
 import { createServer } from './server/index.js';
-import { initExistingProjects } from './memory/index.js';
+import { appendRunLog, getProjectSlugs, hasUncleanShutdown, initExistingProjects } from './memory/index.js';
 import { SwitchController } from './switch-controller/index.js';
 
 async function main() {
@@ -16,7 +16,15 @@ async function main() {
   };
   bus.on('runtime:ensure', ({ slug }) => ensureRuntime(slug));
 
-  const { app } = createServer({ bus });
+  for (const slug of getProjectSlugs()) {
+    if (hasUncleanShutdown(slug)) {
+      const rt = ensureRuntime(slug);
+      rt.markUncleanShutdown();
+      appendRunLog(slug, 'recovery:detected', 'unclean shutdown — resume to continue');
+    }
+  }
+
+  const { app } = createServer({ bus, runtimes });
   app.listen(config.port, () => {
     console.log(`dorch listening on http://localhost:${config.port}`);
   });

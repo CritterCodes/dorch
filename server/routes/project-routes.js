@@ -23,6 +23,7 @@ export function projectRoutes() {
 
   router.post('/:slug/agent/switch', agents.switchAgent);
   router.post('/:slug/agent/stop', agents.stopAgent);
+  router.post('/:slug/agent/resume', agents.resumeAgent);
 
   router.get('/:slug/status', asyncRoute(status.getStatus));
   router.get('/:slug/logs/stream', status.streamLogs);

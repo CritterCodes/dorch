@@ -24,7 +24,7 @@ function listEnv(name, fallback) {
 
 export const config = Object.freeze({
   rootDir: process.cwd(),
-  projectsDir: path.join(process.cwd(), 'projects'),
+  projectsDir: process.env.DORCH_PROJECTS_DIR || path.join(process.cwd(), 'projects'),
   port: intEnv('DORCH_PORT', 3000),
   mongoUri: process.env.DORCH_MONGO_URI || 'mongodb://localhost:27017/dorch',
   sessionSecret: process.env.DORCH_SESSION_SECRET || '',

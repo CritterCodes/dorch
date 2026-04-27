@@ -1,7 +1,12 @@
 import { config } from '../config.js';
 
 export function commandName(base) {
-  return process.platform === 'win32' ? `${base}.cmd` : base;
+  // Copilot CLI uses .bat on Windows, others use .cmd
+  if (process.platform === 'win32') {
+    if (base === 'copilot') return 'copilot.bat';
+    return `${base}.cmd`;
+  }
+  return base;
 }
 
 export async function stopProcess(proc, killTimeoutMs = config.killTimeoutMs) {

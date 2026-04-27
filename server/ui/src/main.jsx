@@ -1,12 +1,15 @@
-import React, { useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
+import React, { useEffect, useRef, useMemo, useState } from 'react';
 import {
   Activity,
   Bot,
   ChevronLeft,
+  ChevronRight,
   ClipboardList,
   FileText,
   GitBranch,
+  GitMerge,
+  HelpCircle,
   KeyRound,
   Loader2,
   LogOut,
@@ -14,12 +17,17 @@ import {
   Plus,
   Radio,
   RefreshCw,
+  RotateCcw,
   Send,
   Square,
   Shuffle,
-  Terminal
+  Terminal,
+  X,
+  XCircle
 } from 'lucide-react';
 import './styles.css';
+
+// ─── API helper ──────────────────────────────────────────────────────────────
 
 async function api(path, options = {}) {
   const response = await fetch(path, {
@@ -30,11 +38,165 @@ async function api(path, options = {}) {
   });
   const text = await response.text();
   const data = text ? JSON.parse(text) : null;
-  if (!response.ok) {
-    throw new Error(data?.error || response.statusText);
-  }
+  if (!response.ok) throw new Error(data?.error || response.statusText);
   return data;
 }
+
+// ─── Tutorial data ────────────────────────────────────────────────────────────
+
+const TUTORIAL_STEPS = [
+  {
+    title: 'Welcome to Dorch',
+    content: 'Dorch runs AI coding agents (Codex CLI + Claude CLI) on your projects. It manages the plan, handoffs, and agent switching so work continues uninterrupted — even when an agent hits a rate limit.',
+    tip: 'Hit "Load Demo" on the projects screen to explore a live example without needing real agents.'
+  },
+  {
+    title: '1 — Create a Project',
+    content: 'A project is a persistent workspace. Give it a name and optionally a Git repo URL. Dorch creates the folder, git-inits (or clones) the workspace, and initialises all memory files.',
+    tip: 'Leave the repo URL blank to start from a fresh git init. Add it later to push upstream.'
+  },
+  {
+    title: '2 — Start a Sprint',
+    content: 'A sprint is a focused block of work: a goal, a git branch, a Planner conversation, and a set of tasks. Open a project → Status tab → type a goal → "Start planning".',
+    tip: 'The Planner asks up to 3 clarifying questions before writing the task plan. Answer them in the Chat tab.'
+  },
+  {
+    title: '3 — Approve the Plan',
+    content: 'After the Planner writes the plan you\'ll see it in the Plan tab. Once you\'re happy, hit "Approve" on the Status tab. This starts the first agent on task 1.',
+    tip: 'You can always check the Plan tab to see which tasks are done (✓) and which is current.'
+  },
+  {
+    title: '4 — Watch the Logs',
+    content: 'The Logs tab streams live output from the running agent. You\'ll see file edits, test runs, and progress messages in real time. Agents output "STEP COMPLETE" when a task is done.',
+    tip: 'If the agent goes quiet for 3+ minutes, Dorch auto-switches to the other agent using the last handoff as context.'
+  },
+  {
+    title: '5 — Agent Switching',
+    content: 'When an agent hits a rate limit or timeout, Dorch automatically writes a handoff file and starts the next agent from where the last one left off. You can also force a switch manually via the Status tab.',
+    tip: 'Check the Handoff tab after a switch to see exactly what was in progress and what the next agent should do first.'
+  },
+  {
+    title: '6 — Close the Sprint',
+    content: 'When all tasks pass, the sprint moves to REVIEW. Chat with the Planner to review the work, then close and merge the sprint branch into main from the Status tab.',
+    tip: 'The sprint summary is written to memory/sprints/sprint-NN.md and loaded as context for the next sprint automatically.'
+  }
+];
+
+const TAB_HELP = {
+  status: {
+    title: 'Status tab',
+    lines: [
+      'Shows the active sprint, current agent state, and quick-action buttons.',
+      '"Approve" starts the first agent after the Planner writes the plan.',
+      '"Switch" manually hands off to the other agent mid-task.',
+      '"Stop" kills the current agent without a handoff — use sparingly.'
+    ]
+  },
+  chat: {
+    title: 'Chat tab',
+    lines: [
+      'This is the Planner conversation — your primary way to communicate with Dorch about this sprint.',
+      'During planning: answer the Planner\'s questions to define the task list.',
+      'During execution: ask "how is it going?" or redirect ("skip task 3").',
+      'At close: say "looks good, merge it" to kick off the sprint summary.'
+    ]
+  },
+  logs: {
+    title: 'Logs tab',
+    lines: [
+      'Live stream of agent stdout/stderr and Dorch system events.',
+      'Watch for "STEP COMPLETE" — means an agent finished a task and tests passed.',
+      'Watch for "BLOCKED: <reason>" — means the agent needs help or is switching.',
+      'The stream reconnects automatically if the connection drops.'
+    ]
+  },
+  plan: {
+    title: 'Plan tab',
+    lines: [
+      'The current sprint plan written by the Planner.',
+      '[ ] = pending task, [x] = completed task, ← CURRENT = active task.',
+      'Each task has acceptance criteria — the test gate the agent must pass.',
+      'The plan updates automatically as tasks are completed.'
+    ]
+  },
+  handoff: {
+    title: 'Handoff tab',
+    lines: [
+      'The most recent handoff written when an agent stopped.',
+      'Contains: what was completed, what\'s in progress, files changed, blockers, and the next recommended step.',
+      'Every new agent start reads this file — it\'s the primary continuity mechanism.',
+      'If this says "No prior handoff" the next agent starts from scratch on task 1.'
+    ]
+  }
+};
+
+// ─── Tutorial modal ───────────────────────────────────────────────────────────
+
+function TutorialModal({ open, onClose }) {
+  const [step, setStep] = useState(0);
+  const current = TUTORIAL_STEPS[step];
+
+  if (!open) return null;
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-card tutorial-card" onClick={(e) => e.stopPropagation()}>
+        <button className="modal-close" onClick={onClose}><X size={16} /></button>
+        <div className="tutorial-progress">
+          {TUTORIAL_STEPS.map((_, i) => (
+            <button
+              key={i}
+              className={`tutorial-dot${i === step ? ' active' : ''}`}
+              onClick={() => setStep(i)}
+            />
+          ))}
+        </div>
+        <h2 className="tutorial-title">{current.title}</h2>
+        <p className="tutorial-body">{current.content}</p>
+        {current.tip && (
+          <div className="tutorial-tip">
+            <strong>Tip:</strong> {current.tip}
+          </div>
+        )}
+        <div className="tutorial-nav">
+          <button className="ghost-button" onClick={() => setStep((s) => Math.max(0, s - 1))} disabled={step === 0}>
+            <ChevronLeft size={16} /> Back
+          </button>
+          <span className="tutorial-count">{step + 1} / {TUTORIAL_STEPS.length}</span>
+          {step < TUTORIAL_STEPS.length - 1 ? (
+            <button className="primary-button small" onClick={() => setStep((s) => s + 1)}>
+              Next <ChevronRight size={16} />
+            </button>
+          ) : (
+            <button className="primary-button small" onClick={onClose}>
+              Done
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Tab help panel ───────────────────────────────────────────────────────────
+
+function HelpPanel({ tabKey, open, onClose }) {
+  const help = TAB_HELP[tabKey];
+  if (!open || !help) return null;
+  return (
+    <div className="help-panel">
+      <div className="help-panel-header">
+        <strong>{help.title}</strong>
+        <button className="icon-only" onClick={onClose}><X size={14} /></button>
+      </div>
+      <ul className="help-panel-list">
+        {help.lines.map((line, i) => <li key={i}>{line}</li>)}
+      </ul>
+    </div>
+  );
+}
+
+// ─── Shared components ────────────────────────────────────────────────────────
 
 function Pill({ children, tone = 'green' }) {
   return <span className={`pill pill-${tone}`}>{children}</span>;
@@ -48,6 +210,8 @@ function IconButton({ children, label, onClick, danger = false, disabled = false
     </button>
   );
 }
+
+// ─── Login ────────────────────────────────────────────────────────────────────
 
 function Login({ onLogin }) {
   const [password, setPassword] = useState('');
@@ -83,7 +247,7 @@ function Login({ onLogin }) {
               <KeyRound size={16} />
               <input
                 value={password}
-                onChange={(event) => setPassword(event.target.value)}
+                onChange={(e) => setPassword(e.target.value)}
                 type="password"
                 autoFocus
                 placeholder="DORCH_SESSION_PASSWORD"
@@ -101,13 +265,18 @@ function Login({ onLogin }) {
   );
 }
 
+// ─── Projects list ────────────────────────────────────────────────────────────
+
 function Projects({ onSelect, onLogout }) {
+  const [showTutorial, setShowTutorial] = useState(false);
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [name, setName] = useState('');
   const [repoUrl, setRepoUrl] = useState('');
   const [creating, setCreating] = useState(false);
+  const [seeding, setSeeding] = useState(false);
+  const [demoMsg, setDemoMsg] = useState('');
 
   async function load() {
     setLoading(true);
@@ -121,9 +290,7 @@ function Projects({ onSelect, onLogout }) {
     }
   }
 
-  useEffect(() => {
-    load();
-  }, []);
+  useEffect(() => { load(); }, []);
 
   async function createProject(event) {
     event.preventDefault();
@@ -141,6 +308,22 @@ function Projects({ onSelect, onLogout }) {
     }
   }
 
+  async function loadDemo() {
+    setSeeding(true);
+    setDemoMsg('');
+    setError('');
+    try {
+      const result = await api('/demo/seed', { method: 'POST' });
+      setDemoMsg(result.message);
+      await load();
+      if (result.seeded) onSelect('demo-auth-service');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSeeding(false);
+    }
+  }
+
   async function logout() {
     await api('/auth/logout', { method: 'POST' });
     onLogout();
@@ -148,33 +331,56 @@ function Projects({ onSelect, onLogout }) {
 
   return (
     <div className="app-frame">
+      <TutorialModal open={showTutorial} onClose={() => setShowTutorial(false)} />
       <header className="topbar">
-        <div>
+        <div className="brand-row tight">
+          <Bot size={18} />
           <h1>Dorch</h1>
-          <span>Projects</span>
         </div>
-        <button className="ghost-button" onClick={logout}><LogOut size={16} /> Logout</button>
+        <div className="topbar-actions">
+          <button className="ghost-button" onClick={() => setShowTutorial(true)}>
+            <HelpCircle size={16} /> How it works
+          </button>
+          <button className="ghost-button" onClick={logout}>
+            <LogOut size={16} /> Logout
+          </button>
+        </div>
       </header>
 
       <section className="section-block">
         <div className="section-title">
-          <span>Active workspaces</span>
+          <span>Projects</span>
           <button className="icon-only" onClick={load} title="Refresh"><RefreshCw size={16} /></button>
         </div>
-        {loading ? <div className="muted-row"><Loader2 className="spin" size={16} /> Loading projects</div> : null}
+        {loading ? <div className="muted-row"><Loader2 className="spin" size={16} /> Loading</div> : null}
         {error ? <div className="error">{error}</div> : null}
-        {!loading && projects.length === 0 ? <div className="empty">No projects yet.</div> : null}
+        {!loading && projects.length === 0 ? (
+          <div className="empty-state">
+            <p>No projects yet.</p>
+            <p className="muted">Create one below or load the demo to explore.</p>
+          </div>
+        ) : null}
         <div className="list">
-          {projects.map((project) => (
-            <button className="list-item" key={project.slug} onClick={() => onSelect(project.slug)}>
+          {projects.map((p) => (
+            <button className="list-item" key={p.slug} onClick={() => onSelect(p.slug)}>
               <div>
-                <strong>{project.name}</strong>
-                <span>{project.slug}</span>
+                <strong>{p.name}</strong>
+                <span className="muted">{p.slug}</span>
               </div>
-              <Pill>{project.repoUrl ? 'cloned' : 'local'}</Pill>
+              <Pill tone={p.repoUrl ? 'green' : 'amber'}>{p.repoUrl ? 'cloned' : 'local'}</Pill>
             </button>
           ))}
         </div>
+      </section>
+
+      <section className="section-block demo-section">
+        <div className="section-title"><span>Try it out</span></div>
+        <p className="body-copy muted">Load a demo project with a sprint already in progress — realistic memory files, handoffs, and planner history — so you can explore every screen without running real agents.</p>
+        {demoMsg ? <div className="info-banner">{demoMsg}</div> : null}
+        <button className="primary-button" onClick={loadDemo} disabled={seeding}>
+          {seeding ? <Loader2 className="spin" size={16} /> : <Bot size={16} />}
+          Load demo project
+        </button>
       </section>
 
       <section className="section-block">
@@ -182,11 +388,11 @@ function Projects({ onSelect, onLogout }) {
         <form className="stack" onSubmit={createProject}>
           <label>
             <span>Name</span>
-            <input value={name} onChange={(event) => setName(event.target.value)} placeholder="auth-service" />
+            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="auth-service" />
           </label>
           <label>
-            <span>Repo URL</span>
-            <input value={repoUrl} onChange={(event) => setRepoUrl(event.target.value)} placeholder="optional Git URL" />
+            <span>Repo URL <span className="muted">(optional)</span></span>
+            <input value={repoUrl} onChange={(e) => setRepoUrl(e.target.value)} placeholder="https://github.com/you/repo" />
           </label>
           <button className="primary-button" disabled={creating || !name.trim()}>
             {creating ? <Loader2 className="spin" size={16} /> : <Plus size={16} />}
@@ -198,11 +404,14 @@ function Projects({ onSelect, onLogout }) {
   );
 }
 
+// ─── Project detail ───────────────────────────────────────────────────────────
+
 function ProjectDetail({ slug, onBack }) {
   const [detail, setDetail] = useState(null);
   const [status, setStatus] = useState(null);
   const [messages, setMessages] = useState([]);
   const [active, setActive] = useState('status');
+  const [helpOpen, setHelpOpen] = useState(false);
   const [goal, setGoal] = useState('');
   const [chat, setChat] = useState('');
   const [error, setError] = useState('');
@@ -224,9 +433,10 @@ function ProjectDetail({ slug, onBack }) {
     }
   }
 
-  useEffect(() => {
-    load();
-  }, [slug]);
+  useEffect(() => { load(); }, [slug]);
+
+  // close help when switching tabs
+  useEffect(() => { setHelpOpen(false); }, [active]);
 
   async function createSprint(event) {
     event.preventDefault();
@@ -277,7 +487,7 @@ function ProjectDetail({ slug, onBack }) {
     setBusy(true);
     setError('');
     try {
-      await api(`/projects/${slug}/agent/switch`, { method: 'POST', body: { reason: 'manual UI switch' } });
+      await api(`/projects/${slug}/agent/switch`, { method: 'POST', body: { reason: 'manual' } });
       await load();
     } catch (err) {
       setError(err.message);
@@ -299,21 +509,78 @@ function ProjectDetail({ slug, onBack }) {
     }
   }
 
+  async function resumeAgent() {
+    setBusy(true);
+    setError('');
+    try {
+      await api(`/projects/${slug}/agent/resume`, { method: 'POST' });
+      await load();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function closeSprint() {
+    if (!latestSprint) return;
+    setBusy(true);
+    setError('');
+    try {
+      await api(`/projects/${slug}/sprints/${latestSprint.n}/close`, { method: 'POST' });
+      await load();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function mergeSprint() {
+    if (!latestSprint) return;
+    setBusy(true);
+    setError('');
+    try {
+      await api(`/projects/${slug}/sprints/${latestSprint.n}/merge`, { method: 'POST' });
+      await load();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const project = detail?.project;
   const latestSprint = useMemo(() => detail?.sprints?.at(-1), [detail]);
+  const isDemo = slug === 'demo-auth-service';
 
   return (
     <div className="phone-shell">
       <header className="topbar compact">
         <button className="icon-only" onClick={onBack} title="Back"><ChevronLeft size={18} /></button>
         <div>
-          <h1>{project?.name || slug}</h1>
-          <span>{latestSprint ? `sprint ${String(latestSprint.n).padStart(2, '0')} · ${latestSprint.status}` : 'no sprint'}</span>
+          <h1>{project?.name || slug}{isDemo ? ' 🧪' : ''}</h1>
+          <span className="muted">
+            {latestSprint ? `sprint ${String(latestSprint.n).padStart(2, '0')} · ${latestSprint.status}` : 'no sprint'}
+          </span>
         </div>
-        <button className="icon-only" onClick={load} title="Refresh"><RefreshCw size={16} /></button>
+        <div className="topbar-actions">
+          <button className="icon-only" onClick={() => setHelpOpen((v) => !v)} title="Help">
+            <HelpCircle size={16} />
+          </button>
+          <button className="icon-only" onClick={load} title="Refresh"><RefreshCw size={16} /></button>
+        </div>
       </header>
 
+      {isDemo && (
+        <div className="demo-banner">
+          🧪 Demo project — explore every tab to see Dorch in action. No real agents needed.
+        </div>
+      )}
+
       {error ? <div className="error page-error">{error}</div> : null}
+
+      <HelpPanel tabKey={active} open={helpOpen} onClose={() => setHelpOpen(false)} />
 
       <main className="tab-content">
         {active === 'status' && (
@@ -326,6 +593,9 @@ function ProjectDetail({ slug, onBack }) {
             approvePlan={approvePlan}
             triggerSwitch={triggerSwitch}
             stopAgent={stopAgent}
+            resumeAgent={resumeAgent}
+            closeSprint={closeSprint}
+            mergeSprint={mergeSprint}
             busy={busy}
           />
         )}
@@ -348,40 +618,80 @@ function ProjectDetail({ slug, onBack }) {
   );
 }
 
-function StatusTab({ latestSprint, status, goal, setGoal, createSprint, approvePlan, triggerSwitch, stopAgent, busy }) {
+// ─── Status tab ───────────────────────────────────────────────────────────────
+
+function StatusTab({ latestSprint, status, goal, setGoal, createSprint, approvePlan, triggerSwitch, stopAgent, resumeAgent, closeSprint, mergeSprint, busy }) {
+  const agentState = status?.state || 'IDLE';
+  const sprintStatus = latestSprint?.status;
+
+  const agentStateTone = {
+    IDLE: 'muted', RUNNING: 'green', SWITCHING: 'amber',
+    AWAITING_USER_INPUT: 'red', AWAITING_COOLDOWN: 'amber', AWAITING_APPROVAL: 'blue'
+  }[agentState] || 'muted';
+
+  const sprintTone = { ACTIVE: 'green', REVIEW: 'amber', PLANNED: 'blue', CLOSED: 'muted' }[sprintStatus] || 'muted';
+
   return (
     <div className="stack roomy">
       <section className="status-card">
         <div>
-          <span className="eyebrow">current state</span>
-          <h2>{latestSprint?.status || 'IDLE'}</h2>
+          <span className="eyebrow">agent state</span>
+          <h2><Pill tone={agentStateTone}>{agentState}</Pill></h2>
         </div>
-        <Pill tone={latestSprint?.status === 'REVIEW' ? 'amber' : 'green'}>{latestSprint ? `task branch` : 'ready'}</Pill>
+        <Pill tone={sprintTone}>{sprintStatus || 'no sprint'}</Pill>
       </section>
+
+      {agentState === 'AWAITING_USER_INPUT' && (
+        <div className="info-banner warn">
+          Agent stopped unexpectedly. Review the Handoff tab, then resume when ready.
+          <button className="primary-button small" onClick={resumeAgent} disabled={busy}>
+            <RotateCcw size={14} /> Resume agent
+          </button>
+        </div>
+      )}
 
       {latestSprint ? (
         <>
           <section className="section-block flush">
-            <div className="section-title"><span>Sprint</span><GitBranch size={16} /></div>
+            <div className="section-title"><span>Sprint {latestSprint.n}</span><GitBranch size={16} /></div>
             <p className="body-copy">{latestSprint.goal}</p>
             <div className="meta-grid">
               <span>Branch</span><strong>{latestSprint.branch}</strong>
               <span>Status</span><strong>{latestSprint.status}</strong>
             </div>
           </section>
+
           <div className="button-grid">
-            <IconButton label="Approve" onClick={approvePlan} disabled={busy || latestSprint.status !== 'PLANNED'}><Send size={16} /></IconButton>
-            <IconButton label="Switch" onClick={triggerSwitch} disabled={busy}><Shuffle size={16} /></IconButton>
-            <IconButton label="Stop" onClick={stopAgent} disabled={busy} danger><Square size={16} /></IconButton>
+            <IconButton label="Approve" onClick={approvePlan} disabled={busy || sprintStatus !== 'PLANNED'}>
+              <Send size={16} />
+            </IconButton>
+            <IconButton label="Switch" onClick={triggerSwitch} disabled={busy || sprintStatus !== 'ACTIVE'}>
+              <Shuffle size={16} />
+            </IconButton>
+            <IconButton label="Stop" onClick={stopAgent} disabled={busy || agentState !== 'RUNNING'} danger>
+              <Square size={16} />
+            </IconButton>
+            <IconButton label="Close" onClick={closeSprint} disabled={busy || sprintStatus !== 'ACTIVE'}>
+              <XCircle size={16} />
+            </IconButton>
+            <IconButton label="Merge" onClick={mergeSprint} disabled={busy || sprintStatus !== 'REVIEW'}>
+              <GitMerge size={16} />
+            </IconButton>
           </div>
         </>
       ) : (
         <section className="section-block flush">
-          <div className="section-title"><span>Create sprint</span></div>
+          <div className="section-title"><span>New sprint</span></div>
+          <p className="body-copy muted">Describe the goal and the Planner will ask a few questions, then write the task plan.</p>
           <form className="stack" onSubmit={createSprint}>
             <label>
               <span>Goal</span>
-              <textarea value={goal} onChange={(event) => setGoal(event.target.value)} placeholder="Describe the sprint goal..." />
+              <textarea
+                value={goal}
+                onChange={(e) => setGoal(e.target.value)}
+                placeholder="e.g. Add rate limiting to the auth endpoints"
+                rows={3}
+              />
             </label>
             <button className="primary-button" disabled={busy || !goal.trim()}>
               {busy ? <Loader2 className="spin" size={16} /> : <Plus size={16} />}
@@ -392,46 +702,43 @@ function StatusTab({ latestSprint, status, goal, setGoal, createSprint, approveP
       )}
 
       <section className="section-block flush">
-        <div className="section-title"><span>Latest context</span></div>
+        <div className="section-title"><span>Latest handoff</span></div>
         <pre className="mini-pre">{status?.latestHandoff || 'No handoff yet.'}</pre>
       </section>
     </div>
   );
 }
 
+// ─── Logs tab ─────────────────────────────────────────────────────────────────
+
 function LogsTab({ slug }) {
   const [lines, setLines] = useState([]);
   const [connected, setConnected] = useState(false);
   const [error, setError] = useState('');
+  const bottomRef = useRef(null);
 
   useEffect(() => {
     let alive = true;
     fetch(`/projects/${slug}/run-log`, { credentials: 'include' })
-      .then((response) => {
-        if (!response.ok) throw new Error(response.statusText);
-        return response.text();
-      })
+      .then((r) => r.ok ? r.text() : Promise.reject(r.statusText))
       .then((text) => {
         if (!alive) return;
-        setLines(text.split(/\r?\n/).filter(Boolean).map((line) => ({ source: 'evt', text: line })));
+        setLines(text.split(/\r?\n/).filter(Boolean).map((line) => ({ source: 'log', text: line })));
       })
-      .catch((err) => {
-        if (alive) setError(err.message);
-      });
+      .catch((err) => { if (alive) setError(String(err)); });
 
     const stream = new EventSource(`/projects/${slug}/logs/stream`, { withCredentials: true });
     stream.onopen = () => setConnected(true);
     stream.onerror = () => setConnected(false);
-    stream.onmessage = (event) => {
-      const item = JSON.parse(event.data);
-      setLines((current) => [...current.slice(-250), item]);
+    stream.onmessage = (e) => {
+      const item = JSON.parse(e.data);
+      setLines((cur) => [...cur.slice(-300), item]);
     };
 
-    return () => {
-      alive = false;
-      stream.close();
-    };
+    return () => { alive = false; stream.close(); };
   }, [slug]);
+
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [lines]);
 
   return (
     <section className="section-block flush full-height logs-panel">
@@ -442,36 +749,55 @@ function LogsTab({ slug }) {
       {error ? <div className="error">{error}</div> : null}
       <div className="log-lines">
         {lines.length === 0 ? <div className="empty">No log lines yet.</div> : null}
-        {lines.map((line, index) => (
-          <div className="log-line" key={`${index}-${line.ts || ''}`}>
-            <span>[{line.source || 'evt'}]</span>
+        {lines.map((line, i) => (
+          <div className="log-line" key={`${i}-${line.ts || ''}`}>
+            <span className={`log-source ${line.source}`}>[{line.source || 'evt'}]</span>
             <p>{line.text}</p>
           </div>
         ))}
+        <div ref={bottomRef} />
       </div>
     </section>
   );
 }
 
+// ─── Chat tab ─────────────────────────────────────────────────────────────────
+
 function ChatTab({ messages, chat, setChat, sendMessage, busy }) {
+  const bottomRef = useRef(null);
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
+
   return (
     <div className="chat-tab">
       <div className="messages">
-        {messages.length === 0 ? <div className="empty">No planner messages yet.</div> : null}
-        {messages.map((message) => (
-          <div className={`bubble ${message.from === 'user' ? 'user' : ''}`} key={message._id || `${message.ts}-${message.text}`}>
-            <span>{message.from}</span>
-            <p>{message.text}</p>
+        {messages.length === 0 ? (
+          <div className="empty-state">
+            <p>No messages yet.</p>
+            <p className="muted">Create a sprint on the Status tab to start planning.</p>
+          </div>
+        ) : null}
+        {messages.map((m) => (
+          <div className={`bubble ${m.from === 'user' ? 'user' : ''}`} key={m._id || `${m.ts}-${m.text}`}>
+            <span className="bubble-from">{m.from === 'user' ? 'you' : 'dorch'}</span>
+            <p>{m.text}</p>
           </div>
         ))}
+        <div ref={bottomRef} />
       </div>
       <form className="chat-form" onSubmit={sendMessage}>
-        <input value={chat} onChange={(event) => setChat(event.target.value)} placeholder="Message planner..." />
+        <input
+          value={chat}
+          onChange={(e) => setChat(e.target.value)}
+          placeholder="Message the Planner…"
+          disabled={busy}
+        />
         <button disabled={busy || !chat.trim()} title="Send"><Send size={16} /></button>
       </form>
     </div>
   );
 }
+
+// ─── Markdown tab ─────────────────────────────────────────────────────────────
 
 function MarkdownTab({ title, text }) {
   return (
@@ -482,6 +808,8 @@ function MarkdownTab({ title, text }) {
   );
 }
 
+// ─── Shared ───────────────────────────────────────────────────────────────────
+
 function TabButton({ active, onClick, icon, label }) {
   return (
     <button className={active ? 'active' : ''} onClick={onClick}>
@@ -491,28 +819,27 @@ function TabButton({ active, onClick, icon, label }) {
   );
 }
 
+// ─── App root ─────────────────────────────────────────────────────────────────
+
 function App() {
   const [authenticated, setAuthenticated] = useState(null);
   const [selectedProject, setSelectedProject] = useState(null);
 
   useEffect(() => {
     api('/auth/session')
-      .then((session) => setAuthenticated(session.authenticated))
+      .then((s) => setAuthenticated(s.authenticated))
       .catch(() => setAuthenticated(false));
   }, []);
 
   if (authenticated === null) {
     return (
       <main className="auth-screen">
-        <div className="muted-row"><Loader2 className="spin" size={16} /> Checking session</div>
+        <div className="muted-row"><Loader2 className="spin" size={16} /> Checking session…</div>
       </main>
     );
   }
-
   if (!authenticated) return <Login onLogin={() => setAuthenticated(true)} />;
-  if (!selectedProject) {
-    return <Projects onSelect={setSelectedProject} onLogout={() => setAuthenticated(false)} />;
-  }
+  if (!selectedProject) return <Projects onSelect={setSelectedProject} onLogout={() => setAuthenticated(false)} />;
   return <ProjectDetail slug={selectedProject} onBack={() => setSelectedProject(null)} />;
 }
 

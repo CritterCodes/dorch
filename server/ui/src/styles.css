@@ -153,6 +153,12 @@ input:focus, textarea:focus {
   color: var(--green);
 }
 
+.primary-button.small {
+  min-height: 30px;
+  font-size: 12px;
+  padding: 0 10px;
+}
+
 .ghost-button, .icon-only, .icon-button {
   border: 1px solid var(--border2);
   background: var(--bg3);
@@ -175,6 +181,24 @@ input:focus, textarea:focus {
   border-color: var(--red);
   background: var(--red-dim);
   color: var(--red);
+}
+
+.info-banner {
+  border: 1px solid var(--green);
+  background: var(--green-dim);
+  color: var(--green);
+  border-radius: 6px;
+  padding: 9px 10px;
+  font-size: 12px;
+}
+
+.info-banner.warn {
+  border-color: var(--amber);
+  background: var(--amber-dim);
+  color: var(--amber);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .error {
@@ -323,6 +347,24 @@ input:focus, textarea:focus {
   color: var(--amber);
 }
 
+.pill-red {
+  border: 1px solid var(--red);
+  background: var(--red-dim);
+  color: var(--red);
+}
+
+.pill-muted {
+  border: 1px solid var(--border2);
+  background: var(--bg3);
+  color: var(--fg3);
+}
+
+.pill-blue {
+  border: 1px solid oklch(0.65 0.18 250);
+  background: oklch(0.65 0.18 250 / 0.14);
+  color: oklch(0.65 0.18 250);
+}
+
 .tab-content {
   flex: 1;
   overflow-y: auto;
@@ -374,7 +416,7 @@ input:focus, textarea:focus {
 
 .button-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 8px;
 }
 
@@ -522,6 +564,150 @@ input:focus, textarea:focus {
   color: inherit;
   overflow-wrap: anywhere;
   white-space: pre-wrap;
+}
+
+.demo-banner {
+  background: oklch(0.65 0.18 250 / 0.1);
+  border-bottom: 1px solid oklch(0.65 0.18 250 / 0.3);
+  color: oklch(0.65 0.18 250);
+  padding: 8px 12px;
+  font-size: 12px;
+}
+
+.demo-section {
+  border-style: dashed;
+}
+
+.help-panel {
+  margin: 0 12px 4px;
+  border: 1px solid var(--border2);
+  background: var(--bg2);
+  border-radius: 7px;
+  padding: 10px 12px;
+}
+
+.help-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  margin-bottom: 8px;
+  color: var(--fg2);
+}
+
+.help-panel-list {
+  margin: 0;
+  padding-left: 16px;
+  color: var(--fg3);
+  font-size: 11px;
+  line-height: 1.65;
+}
+
+.tutorial-card {
+  position: relative;
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 380px;
+}
+
+.tutorial-progress {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+}
+
+.tutorial-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  border: 1px solid var(--border2);
+  background: var(--bg3);
+  padding: 0;
+  min-height: unset;
+}
+
+.tutorial-dot.active {
+  background: var(--green);
+  border-color: var(--green);
+}
+
+.tutorial-title {
+  font-size: 16px;
+  color: var(--green);
+}
+
+.tutorial-body {
+  color: var(--fg2);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.tutorial-tip {
+  border: 1px solid var(--border2);
+  background: var(--bg3);
+  border-radius: 6px;
+  padding: 9px 11px;
+  font-size: 12px;
+  color: var(--fg3);
+  line-height: 1.5;
+}
+
+.tutorial-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 6px;
+}
+
+.tutorial-count {
+  font-size: 11px;
+  color: var(--fg3);
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.65);
+  display: grid;
+  place-items: center;
+  z-index: 50;
+  padding: 16px;
+}
+
+.modal-card {
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: 10px;
+  width: min(420px, 100%);
+}
+
+.modal-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  border: 0;
+  background: transparent;
+  color: var(--fg3);
+  padding: 4px;
+}
+
+.empty-state {
+  padding: 20px 0 10px;
+  text-align: center;
+  color: var(--fg3);
+  font-size: 13px;
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.brand-row.tight {
+  gap: 8px;
 }
 
 @media (min-width: 720px) {

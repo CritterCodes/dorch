@@ -1,7 +1,10 @@
 import * as status from '../services/status-service.js';
 
 export async function getStatus(req, res) {
-  res.json(await status.getStatus(req.params.slug));
+  const slug = req.params.slug;
+  const runtime = req.app.locals.runtimes?.get(slug);
+  const data = await status.getStatus(slug);
+  res.json({ ...data, state: runtime?.state || 'IDLE' });
 }
 
 export function streamLogs(req, res) {

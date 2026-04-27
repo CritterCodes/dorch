@@ -1,133 +1,117 @@
 # Dorch
 
-Autonomous AI coding orchestrator. Runs Codex CLI and Claude CLI as interchangeable workers on a shared task. Automatically switches agents when one is blocked, rate-limited, or stuck.
+Autonomous AI coding orchestrator. Runs Codex CLI and Claude CLI as interchangeable workers on a shared sprint. Manages the plan, memory, handoffs, and agent switching so work continues uninterrupted — even across rate limits, timeouts, or crashes.
 
 ## How it works
 
-1. You submit a task via the mobile web UI
-2. Dorch creates a plan and asks you to approve it
-3. The first agent starts working on a task branch
-4. If it hits a rate limit, stalls, or crashes — Dorch writes a handoff and starts the next agent
-5. The new agent picks up from the handoff, no context lost
-6. When tests pass and all steps are done, you approve a merge to main
+1. Create a project and describe a sprint goal in the web UI
+2. The Planner (claude-cli) asks clarifying questions, then writes the task plan
+3. Approve the plan — the first agent starts on a dedicated sprint branch
+4. Agents signal `STEP COMPLETE` when a task passes tests; Dorch advances to the next task automatically
+5. If an agent hits a rate limit, stalls, or crashes — Dorch writes a handoff and switches to the other agent
+6. The new agent reads the handoff and picks up exactly where the last one stopped
+7. When all tasks are done, close the sprint and merge the branch from the Status tab
 
 ## Prerequisites
 
 - Node.js 20+
-- `codex` installed and in PATH — `npm install -g @openai/codex`
-- `claude` installed and in PATH — `npm install -g @anthropic-ai/claude-code`
-- A git repo cloned into `data/workspace/target-repo/`
+- Docker Desktop (for MongoDB) or a MongoDB URI
+- `codex` CLI — `npm install -g @openai/codex`
+- `claude` CLI — `npm install -g @anthropic-ai/claude-code`
 
-For local use, prefer each CLI's login flow instead of API keys:
+Log into each CLI before running Dorch:
 
 ```bash
 codex login
 claude auth login
 ```
 
-`OPENAI_API_KEY` and `ANTHROPIC_API_KEY` are optional overrides for API-key
-auth. Leave them blank if you expect the CLIs to use stored account login.
+`OPENAI_API_KEY` and `ANTHROPIC_API_KEY` are optional — leave them blank when using stored CLI login.
 
 ## Setup
 
 ```bash
-git clone <this repo> dorch
+git clone https://github.com/CritterCodes/dorch
 cd dorch
 npm install
+npm run ui:install && npm run ui:build
 cp .env.example .env
-# Edit .env — set DORCH_SESSION_SECRET and DORCH_SESSION_PASSWORD.
-# API keys are optional when the CLIs are already logged in.
-```
-
-Clone your target repo into the workspace:
-
-```bash
-git clone <your project> data/workspace/target-repo
+# Edit .env — required: DORCH_SESSION_SECRET and DORCH_SESSION_PASSWORD
 ```
 
 ## Start
 
 ```bash
-npm run mongo:up
-npm start
+npm run mongo:up   # starts MongoDB via Docker Compose
+npm start          # starts Dorch on http://localhost:3000
 ```
 
-Open `http://localhost:3000` on your phone (or desktop). Submit a task. Approve the plan. Watch it run.
+Open `http://localhost:3000` in your browser (phone-sized UI, works on mobile too).
 
-For local development, `.env` must define `DORCH_SESSION_SECRET` and
-`DORCH_SESSION_PASSWORD`. The server uses MongoDB at
-`mongodb://localhost:27017/dorch`; `npm run mongo:up` starts it with Docker
-Compose.
+Hit **Load demo project** on the Projects screen to explore every tab with realistic data — no real agents needed.
 
-For production:
+## Project model
 
-```bash
-npm install -g pm2
-pm2 start ecosystem.config.js
-pm2 save
+```
+Project
+  └── Sprint (one active at a time, runs on a git branch)
+        └── Tasks (worked by agents in sequence)
 ```
 
-## Mobile UI
+- **Project** — persistent workspace with a git repo clone and markdown memory files
+- **Sprint** — a focused goal, a branch (`agent/sprint-NN-<slug>`), and a Planner conversation
+- **Task** — a discrete step; an agent signals `STEP COMPLETE` when tests pass
 
-The web UI is served at `http://<your-vps-ip>:3000`. Five screens:
+## Web UI tabs
 
-| Screen | Purpose |
-|--------|---------|
-| Dashboard | Current agent, status, live output tail, quick actions |
-| Live Logs | Full log stream, filterable by channel |
-| Plan | Step-by-step plan, progress, approve button |
-| Handoff | Latest handoff summary, history navigation |
-| Switch | Manual agent switch with reason |
+| Tab | Purpose |
+|-----|---------|
+| Status | Agent state, sprint info, Approve / Switch / Stop / Close / Merge actions |
+| Chat | Planner conversation — plan your sprint here |
+| Logs | Live SSE stream of agent stdout + Dorch events |
+| Plan | Current sprint plan with task progress |
+| Handoff | Latest handoff written when an agent switched |
 
 ## Configuration
 
-All config is via environment variables. See `.env.example` for the full list with defaults.
-
-Key values:
+All config is via environment variables. See `.env.example` for the full list.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
+| `DORCH_SESSION_SECRET` | *(required)* | Express session signing secret |
+| `DORCH_SESSION_PASSWORD` | *(required)* | UI login password |
+| `DORCH_MONGO_URI` | `mongodb://localhost:27017/dorch` | MongoDB connection string |
 | `DORCH_PORT` | `3000` | Web UI port |
-| `DORCH_PRIMARY_AGENT` | `codex-cli` | First agent to use |
-| `DORCH_NO_OUTPUT_TIMEOUT_MS` | `180000` | Switch after 3 min silence |
-| `DORCH_MAX_RUNTIME_MS` | `2700000` | Switch after 45 min |
-| `DORCH_MAX_SWITCHES_PER_TASK` | `6` | Pause after this many switches |
-| `DORCH_TEST_COMMAND` | `npm test` | Run after agent signals STEP COMPLETE |
+| `DORCH_PRIMARY_AGENT` | `codex-cli` | First agent to use per sprint |
+| `DORCH_AGENTS` | `codex-cli,claude-cli` | Comma-separated agent rotation list |
+| `DORCH_NO_OUTPUT_TIMEOUT_MS` | `180000` | Switch after 3 min of silence |
+| `DORCH_MAX_RUNTIME_MS` | `2700000` | Switch after 45 min total runtime |
+| `DORCH_MAX_SWITCHES_PER_TASK` | `6` | Pause and wait for user after this many switches |
+| `DORCH_TEST_COMMAND` | `npm test` | Command run when agent signals `STEP COMPLETE` |
+| `DORCH_PROJECTS_DIR` | `./projects` | Where project workspaces are stored |
 
-## Agent commit format
+## Crash recovery
 
-Agents commit to the task branch only, using this format:
-
-```
-agent(codex): add validators module
-agent(claude): fix ESLint errors in auth/
-```
-
-Merging to `main` requires manual approval via the UI.
+On boot, Dorch scans each project's run-log. If an agent was running at the time of the last shutdown, the project is placed in `AWAITING_USER_INPUT` state. An amber banner appears on the Status tab — review the Handoff tab, then hit **Resume agent** to continue.
 
 ## Adding an agent adapter
 
 1. Create `agents/<name>.adapter.js`
-2. Export `start(context)`, `stop(proc)`, `formatContext(ctx)`
-3. Add the name to `DORCH_AGENTS` in `.env`
+2. Export `start(context)` → `{ process, stdout, stderr }` and `stop(proc, killTimeoutMs)`
+3. Add the adapter key to `DORCH_AGENTS` in `.env`
 
-See `docs/07-cli-adapters.md` for the full interface contract.
+See `docs/07-cli-adapters.md` for the full interface.
 
 ## Docs
 
-Full implementation docs are in `docs/`. Start with `docs/08-mvp-build-order.md`.
-
 | Doc | Contents |
 |-----|---------|
-| `00-project-brief.md` | What this is, MVP definition of done |
-| `01-product-requirements.md` | Functional + non-functional requirements |
-| `02-system-architecture.md` | Module map, event bus, HTTP API |
-| `03-agent-workflow.md` | Full task lifecycle, git rules |
-| `04-switching-rules.md` | All six triggers, detection patterns, timeouts |
-| `05-memory-and-context.md` | Memory file schemas, context assembly |
-| `06-file-structure.md` | Repo layout, naming conventions |
-| `07-cli-adapters.md` | Adapter interface, prompt injection |
-| `08-mvp-build-order.md` | Step-by-step build sequence |
-| `09-decisions.md` | All resolved design decisions |
-| `10-agent-prompts.md` | Exact prompt templates, detection patterns |
-| `11-planner-chat.md` | Chat-based planner spec |
+| `docs/00-project-brief.md` | What this is, MVP definition of done |
+| `docs/02-system-architecture.md` | Module map, event bus, HTTP API |
+| `docs/03-agent-workflow.md` | Full task lifecycle, git rules |
+| `docs/04-switching-rules.md` | All six triggers, detection patterns, timeouts |
+| `docs/05-memory-and-context.md` | Memory file schemas, context assembly |
+| `docs/07-cli-adapters.md` | Adapter interface, prompt format |
+| `docs/08-mvp-build-order.md` | Step-by-step build sequence |
+| `docs/09-decisions.md` | All resolved design decisions |
+| `docs/12-project-sprint-model.md` | Project → Sprint → Task hierarchy |

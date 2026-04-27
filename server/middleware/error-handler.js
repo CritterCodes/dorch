@@ -1,7 +1,7 @@
 import { HttpError } from '../errors.js';
 
 export function errorHandler(err, _req, res, _next) {
-  console.error(err);
+  console.error(err.stack || err.toString());
   if (err instanceof HttpError) {
     res.status(err.status).json({ error: err.message, ...err.details });
     return;

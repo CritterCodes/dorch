@@ -6,12 +6,15 @@ import { config } from '../config.js';
 import { errorHandler } from './middleware/error-handler.js';
 import { requireSession } from './middleware/require-session.js';
 import { authRoutes } from './routes/auth-routes.js';
+import { demoRoutes } from './routes/demo-routes.js';
 import { projectRoutes } from './routes/project-routes.js';
 import { uiRoutes } from './routes/ui-routes.js';
 
-export function createServer({ bus }) {
+export function createServer({ bus, runtimes }) {
   const app = express();
+
   app.locals.bus = bus;
+  app.locals.runtimes = runtimes;
 
   app.use(express.json({ limit: '1mb' }));
   app.use(session({
@@ -28,6 +31,7 @@ export function createServer({ bus }) {
 
   app.use(uiRoutes());
   app.use('/auth', authRoutes());
+  app.use('/demo', requireSession, demoRoutes());
   app.use('/projects', requireSession, projectRoutes());
   app.use(express.static(path.join(config.rootDir, 'server', 'ui', 'dist')));
   app.use(errorHandler);

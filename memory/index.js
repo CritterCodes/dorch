@@ -48,6 +48,27 @@ export function initExistingProjects() {
   }
 }
 
+export function getProjectSlugs() {
+  if (!fs.existsSync(config.projectsDir)) return [];
+  return fs.readdirSync(config.projectsDir, { withFileTypes: true })
+    .filter((e) => e.isDirectory())
+    .map((e) => e.name);
+}
+
+export function hasUncleanShutdown(slug) {
+  try {
+    const log = readRunLog(slug);
+    let pending = false;
+    for (const line of log.split('\n')) {
+      if (line.includes('[agent:started]')) pending = true;
+      else if (line.includes('[agent:stopped]') || line.includes('[recovery:')) pending = false;
+    }
+    return pending;
+  } catch {
+    return false;
+  }
+}
+
 export const readProjectBrief = (slug) => read(slug, files.projectBrief);
 export const writeProjectBrief = (slug, str) => write(slug, files.projectBrief, str);
 export const readProjectSummary = (slug) => read(slug, files.projectSummary);

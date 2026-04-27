@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { commandName } from '../agents/shared.js';
 import { plannerPath, workspacePath } from '../lib/paths.js';
 import { logSummary } from '../lib/git.js';
 import {
@@ -23,7 +24,7 @@ function appendTurn(slug, from, text) {
 }
 
 function runClaude(prompt) {
-  const result = spawnSync('claude', ['-p', prompt], {
+  const result = spawnSync(commandName('claude'), ['-p', '--permission-mode', 'acceptEdits', prompt], {
     encoding: 'utf8',
     maxBuffer: 1024 * 1024 * 5
   });

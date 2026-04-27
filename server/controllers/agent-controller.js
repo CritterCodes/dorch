@@ -11,3 +11,10 @@ export function stopAgent(req, res) {
   bus.emit('agent:stop_requested', { slug: req.params.slug });
   res.json({ ok: true });
 }
+
+export function resumeAgent(req, res) {
+  const bus = req.app.locals.bus;
+  bus.emit('runtime:ensure', { slug: req.params.slug });
+  bus.emit('agent:resume', { slug: req.params.slug });
+  res.json({ ok: true });
+}
