@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { commandName } from '../agents/shared.js';
-import { plannerPath, workspacePath } from '../lib/paths.js';
+import { memoryPath, plannerPath, workspacePath } from '../lib/paths.js';
 import { logSummary } from '../lib/git.js';
 import {
   readCurrentSprint,
@@ -23,8 +23,9 @@ function appendTurn(slug, from, text) {
   fs.appendFileSync(conversationFile(slug), JSON.stringify({ from, text, ts: new Date().toISOString() }) + '\n');
 }
 
-function runClaude(prompt) {
+function runClaude(slug, prompt) {
   const result = spawnSync(commandName('claude'), ['-p', '--permission-mode', 'acceptEdits', prompt], {
+    cwd: workspacePath(slug),
     encoding: 'utf8',
     maxBuffer: 1024 * 1024 * 5
   });
@@ -53,11 +54,12 @@ export async function reply(slug, sprintN, userMessage) {
   }
 
   const history = fs.readFileSync(conversationFile(slug), 'utf8');
+  const mem = memoryPath(slug);
   const prompt = [
     'You are Dorch Planner. Ask concise clarification questions or write the plan when ready.',
     `Write current plan files for project "${slug}" only when ready.`,
-    `Target sprint file: projects/${slug}/memory/current-sprint.md`,
-    `Target task file: projects/${slug}/memory/current-task.md`,
+    `Target sprint file: ${path.join(mem, 'current-sprint.md')}`,
+    `Target task file: ${path.join(mem, 'current-task.md')}`,
     'When files are written, output exactly PLAN READY.',
     '',
     `SPRINT: ${sprintN}`,
@@ -68,7 +70,7 @@ export async function reply(slug, sprintN, userMessage) {
     `CONVERSATION:\n${history}`
   ].join('\n\n');
 
-  const claude = runClaude(prompt);
+  const claude = runClaude(slug, prompt);
   const message = claude.ok ? claude.text : `Planner CLI unavailable: ${claude.text}`;
   const planReady = /\bPLAN READY\b/i.test(message);
   appendTurn(slug, 'planner', message);
