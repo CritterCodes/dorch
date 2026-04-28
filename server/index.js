@@ -10,11 +10,12 @@ import { demoRoutes } from './routes/demo-routes.js';
 import { projectRoutes } from './routes/project-routes.js';
 import { uiRoutes } from './routes/ui-routes.js';
 
-export function createServer({ bus, runtimes }) {
+export function createServer({ bus, runtimes, runners }) {
   const app = express();
 
   app.locals.bus = bus;
   app.locals.runtimes = runtimes;
+  app.locals.runners = runners;
 
   app.use(express.json({ limit: '1mb' }));
   app.use(session({

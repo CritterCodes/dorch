@@ -6,6 +6,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ClipboardList,
+  ExternalLink,
   FileText,
   GitBranch,
   GitMerge,
@@ -14,6 +15,7 @@ import {
   Loader2,
   LogOut,
   MessageSquare,
+  Play,
   Plus,
   Radio,
   RefreshCw,
@@ -605,6 +607,7 @@ function ProjectDetail({ slug, onBack }) {
         {active === 'plan' && <MarkdownTab title="Sprint Plan" text={status?.currentSprint} />}
         {active === 'logs' && <LogsTab slug={slug} />}
         {active === 'handoff' && <MarkdownTab title="Latest Handoff" text={status?.latestHandoff} />}
+        {active === 'run' && <RunTab slug={slug} />}
       </main>
 
       <nav className="bottom-nav">
@@ -613,6 +616,7 @@ function ProjectDetail({ slug, onBack }) {
         <TabButton active={active === 'logs'} onClick={() => setActive('logs')} icon={<Terminal size={18} />} label="Logs" />
         <TabButton active={active === 'plan'} onClick={() => setActive('plan')} icon={<ClipboardList size={18} />} label="Plan" />
         <TabButton active={active === 'handoff'} onClick={() => setActive('handoff')} icon={<FileText size={18} />} label="Handoff" />
+        <TabButton active={active === 'run'} onClick={() => setActive('run')} icon={<Play size={18} />} label="Run" />
       </nav>
     </div>
   );
@@ -793,6 +797,157 @@ function ChatTab({ messages, chat, setChat, sendMessage, busy }) {
         />
         <button disabled={busy || !chat.trim()} title="Send"><Send size={16} /></button>
       </form>
+    </div>
+  );
+}
+
+// ─── Run tab ──────────────────────────────────────────────────────────────────
+
+function RunTab({ slug }) {
+  const [runnerStatus, setRunnerStatus] = useState(null);
+  const [lines, setLines] = useState([]);
+  const [connected, setConnected] = useState(false);
+  const [command, setCommand] = useState('');
+  const [editingCommand, setEditingCommand] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const bottomRef = useRef(null);
+
+  async function loadStatus() {
+    try {
+      const s = await api(`/projects/${slug}/runner/status`);
+      setRunnerStatus(s);
+      if (!command) setCommand(s.command || 'npm run dev');
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  useEffect(() => { loadStatus(); }, [slug]);
+
+  useEffect(() => {
+    let alive = true;
+    const stream = new EventSource(`/projects/${slug}/runner/logs/stream`, { withCredentials: true });
+    stream.onopen = () => setConnected(true);
+    stream.onerror = () => setConnected(false);
+    stream.onmessage = (e) => {
+      if (!alive) return;
+      const item = JSON.parse(e.data);
+      setLines((cur) => [...cur.slice(-300), item]);
+    };
+    return () => { alive = false; stream.close(); };
+  }, [slug]);
+
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [lines]);
+
+  async function start() {
+    setBusy(true);
+    setError('');
+    try {
+      await api(`/projects/${slug}/runner/start`, { method: 'POST' });
+      await loadStatus();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function stop() {
+    setBusy(true);
+    setError('');
+    try {
+      await api(`/projects/${slug}/runner/stop`, { method: 'POST' });
+      await loadStatus();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function saveCommand() {
+    setBusy(true);
+    setError('');
+    try {
+      await api(`/projects/${slug}/runner/command`, { method: 'POST', body: { command } });
+      setEditingCommand(false);
+      await loadStatus();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const isRunning = runnerStatus?.state === 'RUNNING';
+  const port = runnerStatus?.port;
+  const publicHost = runnerStatus?.publicHost;
+  const appUrl = publicHost && port ? `${publicHost}:${port}` : port ? `http://<your-server>:${port}` : null;
+
+  return (
+    <div className="stack roomy">
+      <section className="status-card">
+        <div>
+          <span className="eyebrow">app state</span>
+          <h2><Pill tone={isRunning ? 'green' : 'muted'}>{isRunning ? 'RUNNING' : 'IDLE'}</Pill></h2>
+        </div>
+        {port && <Pill tone="blue">:{port}</Pill>}
+      </section>
+
+      {appUrl && isRunning && (
+        <a className="info-banner app-url-banner" href={appUrl} target="_blank" rel="noreferrer">
+          <ExternalLink size={14} /> {appUrl}
+        </a>
+      )}
+
+      {error && <div className="error">{error}</div>}
+
+      <section className="section-block flush">
+        <div className="section-title"><span>Run command</span></div>
+        {editingCommand ? (
+          <div className="command-editor">
+            <input
+              value={command}
+              onChange={(e) => setCommand(e.target.value)}
+              placeholder="npm run dev"
+            />
+            <button className="primary-button small" onClick={saveCommand} disabled={busy}>Save</button>
+            <button className="ghost-button" onClick={() => setEditingCommand(false)}>Cancel</button>
+          </div>
+        ) : (
+          <div className="command-display">
+            <code>{runnerStatus?.command || 'npm run dev'}</code>
+            <button className="ghost-button small" onClick={() => setEditingCommand(true)}>Edit</button>
+          </div>
+        )}
+      </section>
+
+      <div className="button-grid cols-2">
+        <IconButton label="Start" onClick={start} disabled={busy || isRunning}>
+          <Play size={16} />
+        </IconButton>
+        <IconButton label="Stop" onClick={stop} disabled={busy || !isRunning} danger>
+          <Square size={16} />
+        </IconButton>
+      </div>
+
+      <section className="section-block flush full-height logs-panel">
+        <div className="section-title">
+          <span>App logs</span>
+          <Pill tone={connected ? 'green' : 'amber'}>{connected ? 'streaming' : 'idle'}</Pill>
+        </div>
+        <div className="log-lines">
+          {lines.length === 0 ? <div className="empty">Start the app to see logs.</div> : null}
+          {lines.map((line, i) => (
+            <div className="log-line" key={`${i}-${line.ts || ''}`}>
+              <span className={`log-source ${line.source}`}>[{line.source}]</span>
+              <p>{line.text}</p>
+            </div>
+          ))}
+          <div ref={bottomRef} />
+        </div>
+      </section>
     </div>
   );
 }

@@ -4,6 +4,8 @@ const projectSchema = new mongoose.Schema({
   slug: { type: String, required: true, unique: true, index: true },
   name: { type: String, required: true },
   repoUrl: { type: String, default: '' },
+  runCommand: { type: String, default: 'npm run dev' },
+  runPort: { type: Number, default: null },
   createdAt: { type: Date, default: Date.now },
   archivedAt: { type: Date, default: null }
 });

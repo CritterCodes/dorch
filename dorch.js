@@ -3,6 +3,7 @@ import bus from './dorch-bus.js';
 import { connectDb } from './db/index.js';
 import { createServer } from './server/index.js';
 import { appendRunLog, getProjectSlugs, hasUncleanShutdown, initExistingProjects } from './memory/index.js';
+import { Runner } from './runner/index.js';
 import { SwitchController } from './switch-controller/index.js';
 
 async function main() {
@@ -16,6 +17,11 @@ async function main() {
   };
   bus.on('runtime:ensure', ({ slug }) => ensureRuntime(slug));
 
+  const runners = new Map();
+  bus.on('runner:ensure', ({ slug }) => {
+    if (!runners.has(slug)) runners.set(slug, new Runner(slug));
+  });
+
   for (const slug of getProjectSlugs()) {
     if (hasUncleanShutdown(slug)) {
       const rt = ensureRuntime(slug);
@@ -24,7 +30,7 @@ async function main() {
     }
   }
 
-  const { app } = createServer({ bus, runtimes });
+  const { app } = createServer({ bus, runtimes, runners });
   app.listen(config.port, () => {
     console.log(`dorch listening on http://localhost:${config.port}`);
   });

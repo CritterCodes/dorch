@@ -710,6 +710,66 @@ input:focus, textarea:focus {
   gap: 8px;
 }
 
+.button-grid.cols-2 {
+  grid-template-columns: 1fr 1fr;
+}
+
+.command-display {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+}
+
+.command-display code {
+  flex: 1;
+  font-size: 12px;
+  color: var(--fg2);
+  font-family: ui-monospace, monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.command-editor {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.command-editor input {
+  flex: 1;
+  min-width: 0;
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  color: var(--fg);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-family: ui-monospace, monospace;
+}
+
+.ghost-button.small {
+  font-size: 11px;
+  padding: 4px 8px;
+}
+
+.app-url-banner {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+  color: var(--fg2);
+  font-size: 13px;
+  font-family: ui-monospace, monospace;
+  cursor: pointer;
+}
+
+.app-url-banner:hover {
+  color: var(--fg);
+}
+
 @media (min-width: 720px) {
   body {
     background:

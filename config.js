@@ -43,7 +43,9 @@ export const config = Object.freeze({
   githubOwner: process.env.DORCH_GITHUB_OWNER || '',
   defaultRemoteTemplate: process.env.DORCH_DEFAULT_REMOTE_TEMPLATE || '',
   testCommand: process.env.DORCH_TEST_COMMAND || 'npm test',
-  maxContextChars: intEnv('DORCH_MAX_CONTEXT_CHARS', 32000)
+  maxContextChars: intEnv('DORCH_MAX_CONTEXT_CHARS', 32000),
+  baseRunPort: intEnv('DORCH_BASE_RUN_PORT', 4000),
+  publicHost: process.env.DORCH_PUBLIC_HOST || ''
 });
 
 export function validateConfig(cfg = config) {
