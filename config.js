@@ -40,6 +40,7 @@ export const config = Object.freeze({
   maxConsecutiveFailures: intEnv('DORCH_MAX_CONSECUTIVE_FAILURES', 3),
   requirePlanApproval: boolEnv('DORCH_REQUIRE_PLAN_APPROVAL', true),
   sprintBranchPrefix: process.env.DORCH_SPRINT_BRANCH_PREFIX || 'agent/sprint-',
+  githubOwner: process.env.DORCH_GITHUB_OWNER || '',
   defaultRemoteTemplate: process.env.DORCH_DEFAULT_REMOTE_TEMPLATE || '',
   testCommand: process.env.DORCH_TEST_COMMAND || 'npm test',
   maxContextChars: intEnv('DORCH_MAX_CONTEXT_CHARS', 32000)
