@@ -10,12 +10,9 @@ export function start(context) {
   const formatted = formatContext(context);
   const proc = spawn(commandName('codex'), [
     'exec',
+    '--full-auto',
     '--cd',
     workspacePath(context.slug),
-    '--sandbox',
-    'workspace-write',
-    '--ask-for-approval',
-    'never',
     '-'
   ], {
     cwd: workspacePath(context.slug),
