@@ -33,12 +33,12 @@ export class Executor {
 
   async stopAgent() {
     if (!this.current) return null;
-    this.monitor.stop();
-    await this.current.adapter.stop(this.current.process, config.killTimeoutMs);
-    appendRunLog(this.slug, 'agent:stopped', this.current.adapterName);
-    bus.emit('agent:stopped', { slug: this.slug, adapter: this.current.adapterName });
     const stopped = this.current;
     this.current = null;
+    this.monitor.stop();
+    await stopped.adapter.stop(stopped.process, config.killTimeoutMs);
+    appendRunLog(this.slug, 'agent:stopped', stopped.adapterName);
+    bus.emit('agent:stopped', { slug: this.slug, adapter: stopped.adapterName });
     return stopped;
   }
 
