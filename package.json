@@ -8,12 +8,12 @@
     "node": ">=20"
   },
   "scripts": {
-    "dev": "node dorch.js",
+    "dev": "nodemon dorch.js",
     "mongo:up": "docker compose up -d mongo",
     "mongo:down": "docker compose down",
     "ui:install": "npm install --prefix server/ui",
     "ui:build": "npm run build --prefix server/ui",
-    "start": "node dorch.js",
+    "start": "nodemon dorch.js",
     "test": "node --test"
   },
   "dependencies": {
@@ -21,7 +21,7 @@
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "express-session": "^1.18.1",
-    "mongoose": "^8.9.5"
-  },
-  "devDependencies": {}
+    "mongoose": "^8.9.5",
+    "nodemon": "^3.1.14"
+  }
 }
