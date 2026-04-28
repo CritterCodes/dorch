@@ -10,8 +10,7 @@ export function start(context) {
   const formatted = formatContext(context);
   const proc = spawn(commandName('claude'), [
     '-p',
-    '--permission-mode',
-    'acceptEdits'
+    '--dangerously-skip-permissions'
   ], {
     cwd: workspacePath(context.slug),
     env: { ...process.env },
