@@ -1,6 +1,6 @@
-import { config, validateConfig } from './config.js';
+import { applySettings, config, validateConfig } from './config.js';
 import bus from './dorch-bus.js';
-import { connectDb } from './db/index.js';
+import { connectDb, Settings } from './db/index.js';
 import { createServer } from './server/index.js';
 import { appendRunLog, getProjectSlugs, hasUncleanShutdown, initExistingProjects } from './memory/index.js';
 import { Runner } from './runner/index.js';
@@ -9,6 +9,10 @@ import { SwitchController } from './switch-controller/index.js';
 async function main() {
   validateConfig();
   await connectDb(config.mongoUri);
+
+  const storedSettings = await Settings.findOne({}).lean();
+  if (storedSettings) applySettings(storedSettings);
+
   initExistingProjects();
   const runtimes = new Map();
   const ensureRuntime = (slug) => {

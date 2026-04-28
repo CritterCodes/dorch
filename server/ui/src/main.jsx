@@ -21,6 +21,7 @@ import {
   RefreshCw,
   RotateCcw,
   Send,
+  Settings,
   Square,
   Shuffle,
   Terminal,
@@ -198,6 +199,195 @@ function HelpPanel({ tabKey, open, onClose }) {
   );
 }
 
+// ─── Settings modal ───────────────────────────────────────────────────────────
+
+function SettingsModal({ open, onClose }) {
+  const [form, setForm] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!open) return;
+    setSaved(false);
+    setError('');
+    api('/settings').then((s) => setForm({
+      agents: s.agents,
+      primaryAgent: s.primaryAgent,
+      noOutputTimeoutMin: Math.round(s.noOutputTimeoutMs / 60000),
+      maxRuntimeMin: Math.round(s.maxRuntimeMs / 60000),
+      maxSwitchesPerTask: s.maxSwitchesPerTask,
+      testCommand: s.testCommand,
+      availableAgents: s.availableAgents
+    })).catch((e) => setError(e.message));
+  }, [open]);
+
+  if (!open) return null;
+
+  async function save(e) {
+    e.preventDefault();
+    setSaving(true);
+    setError('');
+    try {
+      await api('/settings', {
+        method: 'POST',
+        body: {
+          agents: form.agents,
+          primaryAgent: form.primaryAgent,
+          noOutputTimeoutMs: form.noOutputTimeoutMin * 60000,
+          maxRuntimeMs: form.maxRuntimeMin * 60000,
+          maxSwitchesPerTask: Number(form.maxSwitchesPerTask),
+          testCommand: form.testCommand
+        }
+      });
+      setSaved(true);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function toggleAgent(name) {
+    setForm((f) => {
+      const next = f.agents.includes(name)
+        ? f.agents.filter((a) => a !== name)
+        : [...f.agents, name];
+      const primary = next.includes(f.primaryAgent) ? f.primaryAgent : next[0] || '';
+      return { ...f, agents: next, primaryAgent: primary };
+    });
+  }
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-card settings-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h2>Settings</h2>
+          <button className="modal-close" onClick={onClose}><X size={16} /></button>
+        </div>
+
+        {!form ? (
+          <div className="muted-row"><Loader2 className="spin" size={16} /> Loading…</div>
+        ) : (
+          <form className="settings-form" onSubmit={save}>
+
+            <fieldset className="settings-group">
+              <legend>Agents</legend>
+              <div className="settings-row">
+                <label className="settings-label">Active agents</label>
+                <div className="agent-toggles">
+                  {form.availableAgents.map((name) => (
+                    <label key={name} className="agent-toggle">
+                      <input
+                        type="checkbox"
+                        checked={form.agents.includes(name)}
+                        onChange={() => toggleAgent(name)}
+                      />
+                      {name.replace('-cli', '')}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div className="settings-row">
+                <label className="settings-label">Run first</label>
+                <div className="agent-toggles">
+                  {form.agents.map((name) => (
+                    <label key={name} className="agent-toggle">
+                      <input
+                        type="radio"
+                        name="primary"
+                        checked={form.primaryAgent === name}
+                        onChange={() => setForm((f) => ({ ...f, primaryAgent: name }))}
+                      />
+                      {name.replace('-cli', '')}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </fieldset>
+
+            <fieldset className="settings-group">
+              <legend>Timeouts</legend>
+              <div className="settings-row">
+                <label className="settings-label" htmlFor="noOutputTimeout">
+                  No-output timeout
+                  <span className="settings-hint">Switch agent if silent for this long</span>
+                </label>
+                <div className="settings-input-unit">
+                  <input
+                    id="noOutputTimeout"
+                    type="number" min="1" max="60"
+                    value={form.noOutputTimeoutMin}
+                    onChange={(e) => setForm((f) => ({ ...f, noOutputTimeoutMin: Number(e.target.value) }))}
+                  />
+                  <span>min</span>
+                </div>
+              </div>
+              <div className="settings-row">
+                <label className="settings-label" htmlFor="maxRuntime">
+                  Max runtime
+                  <span className="settings-hint">Hard kill after this long regardless</span>
+                </label>
+                <div className="settings-input-unit">
+                  <input
+                    id="maxRuntime"
+                    type="number" min="5" max="180"
+                    value={form.maxRuntimeMin}
+                    onChange={(e) => setForm((f) => ({ ...f, maxRuntimeMin: Number(e.target.value) }))}
+                  />
+                  <span>min</span>
+                </div>
+              </div>
+            </fieldset>
+
+            <fieldset className="settings-group">
+              <legend>Limits</legend>
+              <div className="settings-row">
+                <label className="settings-label" htmlFor="maxSwitches">
+                  Max switches per task
+                  <span className="settings-hint">Pause for review after this many switches</span>
+                </label>
+                <input
+                  id="maxSwitches"
+                  type="number" min="1" max="20"
+                  value={form.maxSwitchesPerTask}
+                  onChange={(e) => setForm((f) => ({ ...f, maxSwitchesPerTask: Number(e.target.value) }))}
+                  className="settings-number"
+                />
+              </div>
+              <div className="settings-row">
+                <label className="settings-label" htmlFor="testCmd">
+                  Test command
+                  <span className="settings-hint">Run after STEP COMPLETE. Leave empty to skip.</span>
+                </label>
+                <input
+                  id="testCmd"
+                  type="text"
+                  value={form.testCommand}
+                  onChange={(e) => setForm((f) => ({ ...f, testCommand: e.target.value }))}
+                  placeholder="npm test"
+                  className="settings-text"
+                />
+              </div>
+            </fieldset>
+
+            {error && <div className="error">{error}</div>}
+            {saved && <div className="info-banner">Saved — takes effect on next agent start.</div>}
+
+            <div className="modal-actions">
+              <button type="button" className="ghost-button" onClick={onClose}>Cancel</button>
+              <button type="submit" className="primary-button small" disabled={saving}>
+                {saving ? <Loader2 className="spin" size={14} /> : null}
+                Save
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Shared components ────────────────────────────────────────────────────────
 
 function Pill({ children, tone = 'green' }) {
@@ -271,6 +461,7 @@ function Login({ onLogin }) {
 
 function Projects({ onSelect, onLogout }) {
   const [showTutorial, setShowTutorial] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -334,6 +525,7 @@ function Projects({ onSelect, onLogout }) {
   return (
     <div className="app-frame">
       <TutorialModal open={showTutorial} onClose={() => setShowTutorial(false)} />
+      <SettingsModal open={showSettings} onClose={() => setShowSettings(false)} />
       <header className="topbar">
         <div className="brand-row tight">
           <Bot size={18} />
@@ -342,6 +534,9 @@ function Projects({ onSelect, onLogout }) {
         <div className="topbar-actions">
           <button className="ghost-button" onClick={() => setShowTutorial(true)}>
             <HelpCircle size={16} /> How it works
+          </button>
+          <button className="icon-only" onClick={() => setShowSettings(true)} title="Settings">
+            <Settings size={16} />
           </button>
           <button className="ghost-button" onClick={logout}>
             <LogOut size={16} /> Logout
@@ -414,6 +609,7 @@ function ProjectDetail({ slug, onBack }) {
   const [messages, setMessages] = useState([]);
   const [active, setActive] = useState('status');
   const [helpOpen, setHelpOpen] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [goal, setGoal] = useState('');
   const [chat, setChat] = useState('');
   const [error, setError] = useState('');
@@ -571,6 +767,7 @@ function ProjectDetail({ slug, onBack }) {
 
   return (
     <div className="phone-shell">
+      <SettingsModal open={showSettings} onClose={() => setShowSettings(false)} />
       <header className="topbar compact">
         <button className="icon-only" onClick={onBack} title="Back"><ChevronLeft size={18} /></button>
         <div>
@@ -580,6 +777,9 @@ function ProjectDetail({ slug, onBack }) {
           </span>
         </div>
         <div className="topbar-actions">
+          <button className="icon-only" onClick={() => setShowSettings(true)} title="Settings">
+            <Settings size={16} />
+          </button>
           <button className="icon-only" onClick={() => setHelpOpen((v) => !v)} title="Help">
             <HelpCircle size={16} />
           </button>

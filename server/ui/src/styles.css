@@ -718,6 +718,143 @@ input:focus, textarea:focus {
   width: min(420px, 100%);
 }
 
+.settings-modal {
+  width: min(460px, 100%);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  margin-top: 4px;
+}
+
+.settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.settings-group {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin: 0;
+}
+
+.settings-group legend {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--fg3);
+  padding: 0 4px;
+}
+
+.settings-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.settings-row:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.settings-row:first-of-type {
+  padding-top: 0;
+}
+
+.settings-label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 13px;
+  color: var(--fg);
+  flex: 1;
+}
+
+.settings-hint {
+  font-size: 10px;
+  color: var(--fg3);
+  font-weight: 400;
+}
+
+.settings-input-unit {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.settings-input-unit input,
+.settings-number {
+  width: 64px;
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  color: var(--fg);
+  border-radius: 6px;
+  padding: 5px 8px;
+  font-size: 13px;
+  text-align: right;
+}
+
+.settings-input-unit span {
+  font-size: 11px;
+  color: var(--fg3);
+}
+
+.settings-text {
+  width: 140px;
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  color: var(--fg);
+  border-radius: 6px;
+  padding: 5px 8px;
+  font-size: 12px;
+  font-family: ui-monospace, monospace;
+  flex-shrink: 0;
+}
+
+.agent-toggles {
+  display: flex;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.agent-toggle {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--fg2);
+  cursor: pointer;
+}
+
+.agent-toggle input {
+  accent-color: var(--green);
+  cursor: pointer;
+}
+
 .modal-close {
   position: absolute;
   top: 12px;

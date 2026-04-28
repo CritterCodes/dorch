@@ -22,7 +22,7 @@ function listEnv(name, fallback) {
   return (raw || fallback).split(',').map((item) => item.trim()).filter(Boolean);
 }
 
-export const config = Object.freeze({
+export const config = {
   rootDir: process.cwd(),
   projectsDir: process.env.DORCH_PROJECTS_DIR || path.join(process.cwd(), 'projects'),
   port: intEnv('DORCH_PORT', 3000),
@@ -46,7 +46,20 @@ export const config = Object.freeze({
   maxContextChars: intEnv('DORCH_MAX_CONTEXT_CHARS', 32000),
   baseRunPort: intEnv('DORCH_BASE_RUN_PORT', 4000),
   publicHost: process.env.DORCH_PUBLIC_HOST || ''
-});
+};
+
+const MUTABLE_KEYS = [
+  'agents', 'primaryAgent', 'noOutputTimeoutMs', 'maxRuntimeMs',
+  'maxSwitchesPerTask', 'testCommand'
+];
+
+export function applySettings(overrides) {
+  for (const key of MUTABLE_KEYS) {
+    if (overrides[key] !== undefined && overrides[key] !== null) {
+      config[key] = overrides[key];
+    }
+  }
+}
 
 export function validateConfig(cfg = config) {
   const missing = [];
