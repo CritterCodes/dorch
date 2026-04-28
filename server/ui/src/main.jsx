@@ -669,7 +669,10 @@ function StatusTab({ latestSprint, status, goal, setGoal, createSprint, approveP
             <IconButton label="Approve" onClick={approvePlan} disabled={busy || sprintStatus !== 'PLANNED'}>
               <Send size={16} />
             </IconButton>
-            <IconButton label="Switch" onClick={triggerSwitch} disabled={busy || sprintStatus !== 'ACTIVE'}>
+            <IconButton label="Resume" onClick={resumeAgent} disabled={busy || sprintStatus !== 'ACTIVE' || agentState === 'RUNNING'}>
+              <RotateCcw size={16} />
+            </IconButton>
+            <IconButton label="Switch" onClick={triggerSwitch} disabled={busy || agentState !== 'RUNNING'}>
               <Shuffle size={16} />
             </IconButton>
             <IconButton label="Stop" onClick={stopAgent} disabled={busy || agentState !== 'RUNNING'} danger>

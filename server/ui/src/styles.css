@@ -416,7 +416,7 @@ input:focus, textarea:focus {
 
 .button-grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 8px;
 }
 
@@ -450,7 +450,7 @@ input:focus, textarea:focus {
 
 .bottom-nav {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   border-top: 1px solid var(--border);
   background: var(--bg2);
 }
