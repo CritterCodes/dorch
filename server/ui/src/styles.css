@@ -745,6 +745,59 @@ input:focus, textarea:focus {
   gap: 8px;
 }
 
+.usage-card {
+  margin-top: 4px;
+}
+
+.usage-summary {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 6px 0 4px;
+}
+
+.usage-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.usage-stat span {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.usage-stat label {
+  font-size: 10px;
+  color: var(--fg3);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.usage-agents {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+}
+
+.usage-agent-row {
+  display: flex;
+  gap: 12px;
+  font-size: 11px;
+  color: var(--fg2);
+  align-items: center;
+}
+
+.usage-agent-name {
+  color: var(--fg);
+  font-weight: 500;
+  min-width: 60px;
+}
+
 .button-grid.cols-2 {
   grid-template-columns: 1fr 1fr;
 }

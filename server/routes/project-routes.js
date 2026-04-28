@@ -5,6 +5,7 @@ import * as projects from '../controllers/project-controller.js';
 import * as runner from '../controllers/runner-controller.js';
 import * as sprints from '../controllers/sprint-controller.js';
 import * as status from '../controllers/status-controller.js';
+import * as usage from '../controllers/usage-controller.js';
 import { asyncRoute } from '../middleware/async-route.js';
 
 export function projectRoutes() {
@@ -32,6 +33,7 @@ export function projectRoutes() {
   router.post('/:slug/runner/command', asyncRoute(runner.updateRunCommand));
   router.get('/:slug/runner/logs/stream', runner.streamRunnerLogs);
 
+  router.get('/:slug/usage', asyncRoute(usage.getProjectUsage));
   router.get('/:slug/status', asyncRoute(status.getStatus));
   router.get('/:slug/logs/stream', status.streamLogs);
   router.get('/:slug/run-log', status.runLog);

@@ -600,6 +600,7 @@ function ProjectDetail({ slug, onBack }) {
       <main className="tab-content">
         {active === 'status' && (
           <StatusTab
+            slug={slug}
             latestSprint={latestSprint}
             status={status}
             goal={goal}
@@ -637,7 +638,69 @@ function ProjectDetail({ slug, onBack }) {
 
 // ─── Status tab ───────────────────────────────────────────────────────────────
 
-function StatusTab({ latestSprint, status, goal, setGoal, createSprint, approvePlan, triggerSwitch, stopAgent, resumeAgent, closeSprint, mergeSprint, busy }) {
+function UsageCard({ slug }) {
+  const [usage, setUsage] = useState(null);
+
+  useEffect(() => {
+    api(`/projects/${slug}/usage`).then(setUsage).catch(() => {});
+  }, [slug]);
+
+  if (!usage || usage.totalRuns === 0) return null;
+
+  function fmtDuration(ms) {
+    if (!ms) return '0s';
+    const m = Math.floor(ms / 60000);
+    const s = Math.floor((ms % 60000) / 1000);
+    return m > 0 ? `${m}m ${s}s` : `${s}s`;
+  }
+
+  function fmtCost(usd) {
+    if (!usd) return null;
+    return usd < 0.01 ? `$${usd.toFixed(4)}` : `$${usd.toFixed(2)}`;
+  }
+
+  function fmtTokens(n) {
+    if (!n) return null;
+    return n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n);
+  }
+
+  const cost = fmtCost(usage.totalCostUsd);
+  const tokIn = fmtTokens(usage.totalTokensIn);
+  const tokOut = fmtTokens(usage.totalTokensOut);
+
+  return (
+    <section className="section-block flush usage-card">
+      <div className="section-title"><span>Usage</span></div>
+      <div className="usage-summary">
+        <div className="usage-stat">
+          <span>{usage.totalRuns}</span>
+          <label>runs</label>
+        </div>
+        <div className="usage-stat">
+          <span>{fmtDuration(usage.totalDurationMs)}</span>
+          <label>agent time</label>
+        </div>
+        {cost && <div className="usage-stat"><span>{cost}</span><label>cost</label></div>}
+        {tokIn && <div className="usage-stat"><span>{tokIn}</span><label>in tokens</label></div>}
+        {tokOut && <div className="usage-stat"><span>{tokOut}</span><label>out tokens</label></div>}
+      </div>
+      {Object.keys(usage.byAgent).length > 1 && (
+        <div className="usage-agents">
+          {Object.entries(usage.byAgent).map(([name, a]) => (
+            <div className="usage-agent-row" key={name}>
+              <span className="usage-agent-name">{name.replace('-cli', '')}</span>
+              <span>{a.runs} runs</span>
+              <span>{fmtDuration(a.durationMs)}</span>
+              {a.costUsd > 0 && <span>{fmtCost(a.costUsd)}</span>}
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function StatusTab({ latestSprint, status, goal, setGoal, createSprint, approvePlan, triggerSwitch, stopAgent, resumeAgent, closeSprint, mergeSprint, busy, slug }) {
   const agentState = status?.state || 'IDLE';
   const sprintStatus = latestSprint?.status;
 
@@ -730,6 +793,8 @@ function StatusTab({ latestSprint, status, goal, setGoal, createSprint, approveP
         <div className="section-title"><span>Latest handoff</span></div>
         <pre className="mini-pre">{status?.latestHandoff || 'No handoff yet.'}</pre>
       </section>
+
+      <UsageCard slug={slug} />
     </div>
   );
 }
