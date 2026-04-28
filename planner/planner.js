@@ -24,7 +24,8 @@ function appendTurn(slug, from, text) {
 }
 
 function runClaude(slug, prompt) {
-  const result = spawnSync(commandName('claude'), ['-p', '--permission-mode', 'acceptEdits', prompt], {
+  const result = spawnSync(commandName('claude'), ['-p', '--permission-mode', 'acceptEdits'], {
+    input: prompt,
     cwd: workspacePath(slug),
     encoding: 'utf8',
     maxBuffer: 1024 * 1024 * 5
