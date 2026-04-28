@@ -437,6 +437,19 @@ function ProjectDetail({ slug, onBack }) {
 
   useEffect(() => { load(); }, [slug]);
 
+  // Auto-refresh status every 3s while a sprint is active
+  useEffect(() => {
+    const sprintStatus = detail?.sprints?.at(-1)?.status;
+    if (sprintStatus !== 'ACTIVE') return;
+    const id = setInterval(async () => {
+      try {
+        const s = await api(`/projects/${slug}/status`);
+        setStatus(s);
+      } catch {}
+    }, 3000);
+    return () => clearInterval(id);
+  }, [slug, detail?.sprints?.at(-1)?.status]);
+
   // close help when switching tabs
   useEffect(() => { setHelpOpen(false); }, [active]);
 
@@ -640,7 +653,12 @@ function StatusTab({ latestSprint, status, goal, setGoal, createSprint, approveP
       <section className="status-card">
         <div>
           <span className="eyebrow">agent state</span>
-          <h2><Pill tone={agentStateTone}>{agentState}</Pill></h2>
+          <h2>
+            <Pill tone={agentStateTone}>
+              {agentState === 'RUNNING' && <span className="pulse-dot" />}
+              {agentState}
+            </Pill>
+          </h2>
         </div>
         <Pill tone={sprintTone}>{sprintStatus || 'no sprint'}</Pill>
       </section>
@@ -718,6 +736,24 @@ function StatusTab({ latestSprint, status, goal, setGoal, createSprint, approveP
 
 // ─── Logs tab ─────────────────────────────────────────────────────────────────
 
+function parseRunLogLine(raw) {
+  const m = raw.match(/^\[([^\]]+)\] \[([^\]]+)\] ?(.*)$/);
+  if (!m) return { source: 'system', text: raw, ts: null };
+  const event = m[2];
+  const detail = m[3];
+  const labels = {
+    'agent:started': `▶ Agent started: ${detail}`,
+    'agent:stopped': `■ Agent stopped: ${detail}`,
+    'trigger:received': `⚡ Switch triggered: ${detail}`,
+    'switch:complete': `↔ Switched to: ${detail}`,
+    'switch:paused': `⏸ Paused — ${detail}`,
+    'step:complete': '✓ Step complete — tests passed',
+    'warn:tests_failed': '⚠ Step signal ignored — tests failed',
+    'recovery:detected': `🔄 ${detail}`,
+  };
+  return { source: 'system', text: labels[event] || `${event}${detail ? ': ' + detail : ''}`, ts: m[1] };
+}
+
 function LogsTab({ slug }) {
   const [lines, setLines] = useState([]);
   const [connected, setConnected] = useState(false);
@@ -730,16 +766,18 @@ function LogsTab({ slug }) {
       .then((r) => r.ok ? r.text() : Promise.reject(r.statusText))
       .then((text) => {
         if (!alive) return;
-        setLines(text.split(/\r?\n/).filter(Boolean).map((line) => ({ source: 'log', text: line })));
+        const parsed = text.split(/\r?\n/).filter(Boolean).map(parseRunLogLine);
+        setLines(parsed);
       })
       .catch((err) => { if (alive) setError(String(err)); });
 
     const stream = new EventSource(`/projects/${slug}/logs/stream`, { withCredentials: true });
-    stream.onopen = () => setConnected(true);
-    stream.onerror = () => setConnected(false);
+    stream.onopen = () => { if (alive) setConnected(true); };
+    stream.onerror = () => { if (alive) setConnected(false); };
     stream.onmessage = (e) => {
+      if (!alive) return;
       const item = JSON.parse(e.data);
-      setLines((cur) => [...cur.slice(-300), item]);
+      setLines((cur) => [...cur.slice(-400), item]);
     };
 
     return () => { alive = false; stream.close(); };
@@ -750,15 +788,25 @@ function LogsTab({ slug }) {
   return (
     <section className="section-block flush full-height logs-panel">
       <div className="section-title">
-        <span>Live Logs</span>
-        <Pill tone={connected ? 'green' : 'amber'}>{connected ? 'streaming' : 'idle'}</Pill>
+        <span>Activity</span>
+        <Pill tone={connected ? 'green' : 'muted'}>{connected ? 'live' : 'history'}</Pill>
+      </div>
+      <div className="logs-legend">
+        <span className="legend-system">■ system events</span>
+        <span className="legend-stdout">■ agent output</span>
+        <span className="legend-stderr">■ errors</span>
       </div>
       {error ? <div className="error">{error}</div> : null}
       <div className="log-lines">
-        {lines.length === 0 ? <div className="empty">No log lines yet.</div> : null}
+        {lines.length === 0 ? (
+          <div className="empty-state">
+            <p>No activity yet.</p>
+            <p className="muted">Events appear here when an agent starts running.</p>
+          </div>
+        ) : null}
         {lines.map((line, i) => (
-          <div className="log-line" key={`${i}-${line.ts || ''}`}>
-            <span className={`log-source ${line.source}`}>[{line.source || 'evt'}]</span>
+          <div className={`log-line ${line.source}`} key={`${i}-${line.ts || ''}`}>
+            {line.ts && <span className="log-ts">{line.ts.replace('T', ' ').slice(0, 19)}</span>}
             <p>{line.text}</p>
           </div>
         ))}

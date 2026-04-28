@@ -43,6 +43,7 @@ export class Executor {
   }
 
   runTests() {
+    if (!config.testCommand) return;
     execSync(config.testCommand, {
       cwd: workspacePath(this.slug),
       stdio: 'inherit',

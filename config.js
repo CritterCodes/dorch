@@ -42,7 +42,7 @@ export const config = Object.freeze({
   sprintBranchPrefix: process.env.DORCH_SPRINT_BRANCH_PREFIX || 'agent/sprint-',
   githubOwner: process.env.DORCH_GITHUB_OWNER || '',
   defaultRemoteTemplate: process.env.DORCH_DEFAULT_REMOTE_TEMPLATE || '',
-  testCommand: process.env.DORCH_TEST_COMMAND || 'npm test',
+  testCommand: process.env.DORCH_TEST_COMMAND || '',
   maxContextChars: intEnv('DORCH_MAX_CONTEXT_CHARS', 32000),
   baseRunPort: intEnv('DORCH_BASE_RUN_PORT', 4000),
   publicHost: process.env.DORCH_PUBLIC_HOST || ''

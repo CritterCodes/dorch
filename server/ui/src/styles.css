@@ -546,24 +546,59 @@ input:focus, textarea:focus {
 }
 
 .log-line {
-  display: grid;
-  grid-template-columns: auto 1fr;
+  display: flex;
   gap: 8px;
-  color: var(--fg2);
   font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
   font-size: 10px;
   line-height: 1.6;
   padding: 2px 0;
+  color: var(--fg3);
 }
 
-.log-line span {
+.log-line.system { color: var(--fg2); }
+.log-line.stdout { color: var(--fg3); }
+.log-line.stderr { color: var(--amber); }
+
+.log-ts {
+  flex-shrink: 0;
   color: var(--fg3);
+  opacity: 0.5;
+  font-size: 9px;
+  padding-top: 1px;
 }
 
 .log-line p {
   color: inherit;
   overflow-wrap: anywhere;
   white-space: pre-wrap;
+  margin: 0;
+}
+
+.logs-legend {
+  display: flex;
+  gap: 12px;
+  padding: 4px 0 8px;
+  font-size: 10px;
+}
+
+.legend-system { color: var(--fg2); }
+.legend-stdout { color: var(--fg3); }
+.legend-stderr { color: var(--amber); }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.pulse-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  margin-right: 5px;
+  vertical-align: middle;
+  animation: pulse 1.4s ease-in-out infinite;
 }
 
 .demo-banner {
