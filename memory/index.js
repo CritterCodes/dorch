@@ -30,7 +30,25 @@ export function initProject(slug) {
   fs.mkdirSync(workspacePath(slug), { recursive: true });
   fs.mkdirSync(path.join(memoryPath(slug), 'sprints'), { recursive: true });
   fs.mkdirSync(plannerPath(slug), { recursive: true });
-  ensureFile(path.join(memoryPath(slug), files.projectBrief), '# Project\nNo brief defined yet.\n');
+  ensureFile(path.join(memoryPath(slug), files.projectBrief), `# Project Brief
+
+## Non-negotiable engineering standards
+
+These apply to every sprint, no exceptions:
+
+1. **Test suite required.** Every project must have \`npm test\` passing before sprint 2 begins.
+   - Sprint 1 must include a task to install and configure a test runner (Vitest for frontend/fullstack, Jest for Node, pytest for Python, etc.).
+   - Acceptance criteria for any feature task must include at least one test that covers the core behaviour.
+   - STEP COMPLETE is only valid if \`npm test\` (or the configured test command) exits 0.
+
+2. **No committing broken code.** All committed files must compile/type-check cleanly.
+
+3. **One task at a time.** Agents work only on the current task. Do not jump ahead.
+
+## Project goal
+
+To be filled in by the planner during sprint 1 planning.
+`);
   ensureFile(path.join(memoryPath(slug), files.projectSummary), '# Project Summary\nNo sprints completed yet.\n');
   ensureFile(path.join(memoryPath(slug), files.currentSprint), '# Sprint\nNo active sprint.\n');
   ensureFile(path.join(memoryPath(slug), files.currentTask), '# Current Task\nNo task active.\n');

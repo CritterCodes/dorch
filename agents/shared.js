@@ -59,9 +59,10 @@ ${context.latestHandoff}
 INSTRUCTIONS:
 - Read the handoff carefully. Start from "### Next Step" in the handoff.
 - If this is the first run, start from task 1 of the sprint plan.
-- Work only on files relevant to the current task.
-- Run tests after making changes.
-- When the current task is fully complete and tests pass, output exactly: STEP COMPLETE
-- If you are blocked, output: BLOCKED: <reason>
+- Work only on files relevant to the current task. Do not jump ahead to future tasks.
+- After completing the task, run the test suite: \`npm test\` (or the configured test command).
+- STEP COMPLETE is only valid if the test suite exits 0. Do not signal it otherwise.
+- If you cannot make the tests pass, document why in a handoff and output: BLOCKED: <reason>
+- If you are blocked by something you cannot resolve (permissions, missing credentials, etc.), output: BLOCKED: <reason>
 `;
 }
