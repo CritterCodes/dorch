@@ -5,6 +5,7 @@ const projectSchema = new mongoose.Schema({
   name: { type: String, required: true },
   repoUrl: { type: String, default: '' },
   runCommand: { type: String, default: 'npm run dev' },
+  testCommand: { type: String, default: null },
   runPort: { type: Number, default: null },
   createdAt: { type: Date, default: Date.now },
   archivedAt: { type: Date, default: null }

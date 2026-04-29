@@ -82,9 +82,9 @@ export class SwitchController {
     this.state = 'RUNNING';
   }
 
-  handleStepSignal() {
+  async handleStepSignal() {
     try {
-      this.executor.runTests();
+      await this.executor.runTests();
       appendRunLog(this.slug, 'step:complete');
       this.switches = 0;
       bus.emit('step:complete', { slug: this.slug });

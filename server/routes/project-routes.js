@@ -31,6 +31,8 @@ export function projectRoutes() {
   router.post('/:slug/runner/start', asyncRoute(runner.startRunner));
   router.post('/:slug/runner/stop', asyncRoute(runner.stopRunner));
   router.post('/:slug/runner/command', asyncRoute(runner.updateRunCommand));
+  router.get('/:slug/runner/config', asyncRoute(runner.getProjectConfig));
+  router.post('/:slug/runner/test-command', asyncRoute(runner.updateTestCommand));
   router.get('/:slug/runner/logs/stream', runner.streamRunnerLogs);
 
   router.get('/:slug/usage', asyncRoute(usage.getProjectUsage));

@@ -838,6 +838,70 @@ function ProjectDetail({ slug, onBack }) {
 
 // ─── Status tab ───────────────────────────────────────────────────────────────
 
+function ProjectConfigCard({ slug }) {
+  const [cfg, setCfg] = useState(null);
+  const [editingTest, setEditingTest] = useState(false);
+  const [testCmd, setTestCmd] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  async function load() {
+    try {
+      const c = await api(`/projects/${slug}/runner/config`);
+      setCfg(c);
+      setTestCmd(c.testCommand ?? '');
+    } catch {}
+  }
+
+  useEffect(() => { load(); }, [slug]);
+
+  async function saveTestCommand() {
+    setSaving(true);
+    try {
+      await api(`/projects/${slug}/runner/test-command`, { method: 'POST', body: { command: testCmd } });
+      setEditingTest(false);
+      await load();
+    } catch {}
+    setSaving(false);
+  }
+
+  if (!cfg) return null;
+
+  const effective = cfg.effectiveTestCommand;
+
+  return (
+    <section className="section-block flush usage-card">
+      <div className="section-title"><span>Project config</span></div>
+      <div className="config-row">
+        <span className="config-label">Test gate</span>
+        {editingTest ? (
+          <div className="command-editor">
+            <input
+              value={testCmd}
+              onChange={(e) => setTestCmd(e.target.value)}
+              placeholder="npm run build  (empty = skip)"
+            />
+            <button className="primary-button small" onClick={saveTestCommand} disabled={saving}>Save</button>
+            <button className="ghost-button small" onClick={() => setEditingTest(false)}>Cancel</button>
+          </div>
+        ) : (
+          <div className="config-value">
+            <code>{cfg.testCommand !== null && cfg.testCommand !== undefined
+              ? cfg.testCommand || '(skip)'
+              : effective ? `${effective} (global)` : '(skip)'
+            }</code>
+            <button className="ghost-button small" onClick={() => setEditingTest(true)}>Edit</button>
+          </div>
+        )}
+      </div>
+      {!effective && (
+        <p className="settings-hint" style={{ marginTop: 4 }}>
+          No test gate set — agents can signal STEP COMPLETE without verification. Consider setting <code>npm run build</code>.
+        </p>
+      )}
+    </section>
+  );
+}
+
 function UsageCard({ slug }) {
   const [usage, setUsage] = useState(null);
 
@@ -994,6 +1058,7 @@ function StatusTab({ latestSprint, status, goal, setGoal, createSprint, approveP
         <pre className="mini-pre">{status?.latestHandoff || 'No handoff yet.'}</pre>
       </section>
 
+      <ProjectConfigCard slug={slug} />
       <UsageCard slug={slug} />
     </div>
   );

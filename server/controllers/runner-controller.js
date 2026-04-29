@@ -51,6 +51,25 @@ export async function updateRunCommand(req, res) {
   res.json({ ok: true });
 }
 
+export async function updateTestCommand(req, res) {
+  const { slug } = req.params;
+  const command = req.body?.command !== undefined ? String(req.body.command).trim() : null;
+  await Project.updateOne({ slug }, { testCommand: command || null });
+  res.json({ ok: true });
+}
+
+export async function getProjectConfig(req, res) {
+  const { slug } = req.params;
+  const project = await Project.findOne({ slug }).lean();
+  if (!project) throw notFound('project not found');
+  const globalTestCmd = config.testCommand;
+  res.json({
+    runCommand: project.runCommand || 'npm run dev',
+    testCommand: project.testCommand,
+    effectiveTestCommand: project.testCommand ?? globalTestCmd ?? null
+  });
+}
+
 export function streamRunnerLogs(req, res) {
   const runner = req.app.locals.runners.get(req.params.slug);
   res.setHeader('Content-Type', 'text/event-stream');

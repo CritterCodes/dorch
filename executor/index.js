@@ -2,7 +2,7 @@ import { execSync } from 'node:child_process';
 import * as codex from '../agents/codex.adapter.js';
 import * as claude from '../agents/claude.adapter.js';
 import { config } from '../config.js';
-import { AgentRun } from '../db/index.js';
+import { AgentRun, Project } from '../db/index.js';
 import bus from '../dorch-bus.js';
 import { workspacePath } from '../lib/paths.js';
 import { appendRunLog, assembleContext } from '../memory/index.js';
@@ -79,9 +79,11 @@ export class Executor {
     return stopped;
   }
 
-  runTests() {
-    if (!config.testCommand) return;
-    execSync(config.testCommand, {
+  async runTests() {
+    const project = await Project.findOne({ slug: this.slug }).lean();
+    const cmd = project?.testCommand ?? config.testCommand;
+    if (!cmd) return;
+    execSync(cmd, {
       cwd: workspacePath(this.slug),
       stdio: 'inherit',
       shell: true
